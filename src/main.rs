@@ -1,8 +1,18 @@
+use env_logger::{Builder, Env, Target};
+#[allow(unused_imports)]
+use log::{self, debug, info};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
 
+fn init() {
+    let env = Env::default().default_filter_or("info");
+    Builder::from_env(env).target(Target::Stdout).init();
+}
+
 fn main() {
+    init();
+
     let image_width = 256usize;
     let image_height = 256usize;
 
@@ -17,6 +27,7 @@ fn main() {
     writeln!(out_buffer, "255").expect("Unable to write");
 
     for j in 0..image_height {
+        debug!("Scanlines remaining: {}", image_height - j);
         for i in 0..image_width {
             // Not sure why we had to make these doubles first and then turn
             // them into ints, but I guess I'll leave this from the book
