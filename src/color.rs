@@ -17,4 +17,28 @@ impl Color {
 
         writeln!(out_buffer, "{r} {g} {b}")
     }
+
+    pub fn black() -> Color {
+        Color::zero()
+    }
+
+    pub fn white() -> Color {
+        Color {
+            x: 1.,
+            y: 1.,
+            z: 1.,
+        }
+    }
+
+    pub fn red() -> Color {
+      Color::unit_x()
+    }
+
+    pub fn green() -> Color {
+      Color::unit_y()
+    }
+
+    pub fn blue() -> Color {
+      Color::unit_z()
+    }
 }
