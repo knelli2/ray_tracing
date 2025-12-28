@@ -1,9 +1,15 @@
+#![allow(unused)]
+mod color;
+mod point;
+mod vec3;
+
 use env_logger::{Builder, Env, Target};
-#[allow(unused_imports)]
 use log::{self, debug, info};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
+
+use crate::color::Color;
 
 fn init() {
     let env = Env::default().default_filter_or("info");
@@ -29,24 +35,12 @@ fn main() {
     for j in 0..image_height {
         debug!("Scanlines remaining: {}", image_height - j);
         for i in 0..image_width {
-            // Not sure why we had to make these doubles first and then turn
-            // them into ints, but I guess I'll leave this from the book
-            // let red = (i as f32) / ((image_width - 1) as f32);
-            // let green = (j as f32) / ((image_height - 1) as f32);
-            // let blue = 0.0;
-
-            // let red = 255.999 * red;
-            // let green = 255.999 * green;
-            // let blue = 255.999 * blue;
-
-            // writeln!(out_buffer, "{} {} {}", red as u32, green as u32, blue
-            // as u32).expect("Unable to write");
-
-            let red = i;
-            let green = j;
-            let blue = 0;
-
-            writeln!(out_buffer, "{} {} {}", red, green, blue).expect("Unable to write");
+            let pixel = Color::new(
+                (i as f32) / ((image_width - 1) as f32),
+                (j as f32) / ((image_height - 1) as f32),
+                0.,
+            );
+            pixel.write_color(&mut out_buffer).expect("Could not write pixel color");
         }
     }
 }
