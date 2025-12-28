@@ -1,15 +1,17 @@
 #![allow(unused)]
 use std::{
+    default::Default,
     fmt::Debug,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    process::Output,
 };
 
-use num_traits::{Float, Zero, NumAssignRef};
+use num_traits::{Float, NumAssignRef, Zero};
 
 pub trait Vec3Trait: Float + NumAssignRef {}
 impl<T: Float + NumAssignRef> Vec3Trait for T {}
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Vec3<T = f32>
 where
     T: Vec3Trait,
@@ -80,6 +82,18 @@ impl<T: Vec3Trait> Add for Vec3<T> {
     }
 }
 
+impl<T: Vec3Trait> Add<T> for Vec3<T> {
+    type Output = Self;
+
+    fn add(self, rhs: T) -> Self::Output {
+        Vec3 {
+            x: self.x + rhs,
+            y: self.y + rhs,
+            z: self.z + rhs,
+        }
+    }
+}
+
 impl<T: Vec3Trait> AddAssign for Vec3<T> {
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;
@@ -96,6 +110,18 @@ impl<T: Vec3Trait> Sub for Vec3<T> {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
             z: self.z - rhs.z,
+        }
+    }
+}
+
+impl<T: Vec3Trait> Sub<T> for Vec3<T> {
+    type Output = Self;
+
+    fn sub(self, rhs: T) -> Self::Output {
+        Vec3 {
+            x: self.x - rhs,
+            y: self.y - rhs,
+            z: self.z - rhs,
         }
     }
 }
@@ -121,11 +147,11 @@ impl<T: Vec3Trait> Mul<T> for Vec3<T> {
 }
 
 impl<T: Vec3Trait> MulAssign<T> for Vec3<T> {
-  fn mul_assign(&mut self, rhs: T) {
-      self.x *= rhs;
-      self.y *= rhs;
-      self.z *= rhs;
-  }
+    fn mul_assign(&mut self, rhs: T) {
+        self.x *= rhs;
+        self.y *= rhs;
+        self.z *= rhs;
+    }
 }
 
 impl<T: Vec3Trait> Div<T> for Vec3<T> {
@@ -141,11 +167,11 @@ impl<T: Vec3Trait> Div<T> for Vec3<T> {
 }
 
 impl<T: Vec3Trait> DivAssign<T> for Vec3<T> {
-  fn div_assign(&mut self, rhs: T) {
-      self.x /= rhs;
-      self.y /= rhs;
-      self.x /= rhs;
-  }
+    fn div_assign(&mut self, rhs: T) {
+        self.x /= rhs;
+        self.y /= rhs;
+        self.z /= rhs;
+    }
 }
 
 // ==================
@@ -186,7 +212,7 @@ impl<T: Vec3Trait> Vec3<T> {
     }
 
     pub fn dot(&self, rhs: &Self) -> T {
-        self.x * rhs.x + self.y * rhs.y + self.z + rhs.z
+        self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
     }
 
     pub fn cross(&self, rhs: &Self) -> Self {
@@ -202,6 +228,6 @@ impl<T: Vec3Trait> Vec3<T> {
     }
 
     pub fn make_unit(&mut self) {
-      *self /= self.length();
+        *self /= self.length();
     }
 }
