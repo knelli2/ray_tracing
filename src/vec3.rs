@@ -6,7 +6,7 @@ use std::{
     process::Output,
 };
 
-use num_traits::{Float, NumAssignRef, Zero};
+use num_traits::{Float, NumAssignRef, Zero, One};
 
 pub trait Vec3Trait: Float + NumAssignRef {}
 impl<T: Float + NumAssignRef> Vec3Trait for T {}
@@ -22,7 +22,7 @@ where
 }
 
 // ==================
-// Conversion
+// Construction/Conversion
 // ==================
 
 impl<T: Vec3Trait> Vec3<T> {
@@ -175,7 +175,7 @@ impl<T: Vec3Trait> DivAssign<T> for Vec3<T> {
 }
 
 // ==================
-// Zero
+// Zero/One
 // ==================
 
 impl<T: Vec3Trait> Vec3<T> {
@@ -185,6 +185,18 @@ impl<T: Vec3Trait> Vec3<T> {
             y: T::zero(),
             z: T::zero(),
         }
+    }
+
+    pub fn unit_x() -> Self {
+      Vec3 { x: T::one(), y: T::zero(), z: T::zero() }
+    }
+
+    pub fn unit_y() -> Self {
+      Vec3 { x: T::zero(), y: T::one(), z: T::zero() }
+    }
+
+    pub fn unit_z() -> Self {
+      Vec3 { x: T::zero(), y: T::zero(), z: T::one() }
     }
 }
 
