@@ -2,6 +2,7 @@
 mod color;
 mod point;
 mod vec3;
+mod ray;
 
 use env_logger::{Builder, Env, Target};
 use log::{self, debug, info};
@@ -10,6 +11,8 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 
 use crate::color::Color;
+use crate::point::Point;
+use crate::ray::Ray;
 
 fn init() {
     let env = Env::default().default_filter_or("info");
