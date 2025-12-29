@@ -6,10 +6,13 @@ use std::{
     process::Output,
 };
 
-use num_traits::{Float, NumAssignRef, Zero, One};
+use num_traits::{Float, NumAssignRef, One, Zero};
+use rand::distr::uniform::SampleUniform;
 
-pub trait Vec3Trait: Float + NumAssignRef {}
-impl<T: Float + NumAssignRef> Vec3Trait for T {}
+use crate::utils::{random_float, random_float_range};
+
+pub trait Vec3Trait: Float + NumAssignRef + SampleUniform {}
+impl<T: Float + NumAssignRef + SampleUniform> Vec3Trait for T {}
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Vec3<T = f32>
@@ -28,6 +31,38 @@ where
 impl<T: Vec3Trait> Vec3<T> {
     pub fn new(x: T, y: T, z: T) -> Vec3<T> {
         Vec3 { x: x, y: y, z: z }
+    }
+
+    pub fn random() -> Vec3<T> {
+        Vec3::new(random_float(), random_float(), random_float())
+    }
+
+    pub fn random_range(min: T, max: T) -> Vec3<T> {
+        Vec3::new(
+            random_float_range(min, max),
+            random_float_range(min, max),
+            random_float_range(min, max),
+        )
+    }
+
+    pub fn random_unit() -> Vec3<T> {
+        loop {
+            let trial = Self::random_range(-T::one(), T::one());
+            let trial_length = trial.length();
+            // Prevent against zero division
+            if trial_length > T::from(10).unwrap() * T::min_positive_value() {
+                return trial / trial_length;
+            }
+        }
+    }
+
+    pub fn random_on_hemisphere(normal: &Vec3<T>) -> Vec3<T> {
+        let random_unit = Vec3::random_unit();
+        if random_unit.dot(normal) > T::zero() {
+            random_unit
+        } else {
+            -random_unit
+        }
     }
 }
 
@@ -188,15 +223,27 @@ impl<T: Vec3Trait> Vec3<T> {
     }
 
     pub fn unit_x() -> Self {
-      Vec3 { x: T::one(), y: T::zero(), z: T::zero() }
+        Vec3 {
+            x: T::one(),
+            y: T::zero(),
+            z: T::zero(),
+        }
     }
 
     pub fn unit_y() -> Self {
-      Vec3 { x: T::zero(), y: T::one(), z: T::zero() }
+        Vec3 {
+            x: T::zero(),
+            y: T::one(),
+            z: T::zero(),
+        }
     }
 
     pub fn unit_z() -> Self {
-      Vec3 { x: T::zero(), y: T::zero(), z: T::one() }
+        Vec3 {
+            x: T::zero(),
+            y: T::zero(),
+            z: T::one(),
+        }
     }
 }
 

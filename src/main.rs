@@ -1,5 +1,4 @@
 #![allow(unused, non_snake_case)]
-mod angle_utils;
 mod camera;
 mod color;
 mod hittable;
@@ -8,6 +7,7 @@ mod interval;
 mod point;
 mod ray;
 mod sphere;
+mod utils;
 mod vec3;
 
 use env_logger::{Builder, Env, Target};
@@ -54,7 +54,8 @@ fn main() {
     camera.center = Point::zero();
     camera.focal_length = 1.;
     camera.viewport_height = 2.;
-    camera.samples_per_pixel = 50;
+    camera.samples_per_pixel = 25;
+    camera.max_depth = 25;
     camera.filename = "test_image.ppm".to_string();
     camera.output_dir = "/home/knelli/ray_tracing/output/".to_string();
 
