@@ -26,24 +26,34 @@ fn init() {
 ///
 /// a = d*d
 /// b = 2d*(C-Q)
+/// h = -b/2
 /// c = |(C-Q)|^2 - r^2
-fn hit_sphere(center: &Point, radius: f32, ray: &Ray) -> bool {
-    let Q = ray.origin();
+fn hit_sphere(center: &Point, radius: f32, ray: &Ray) -> f32 {
     let d = ray.direction();
-    let center_minus_Q = *center - *Q;
+    let center_minus_Q = *center - *ray.origin();
 
     let a = d.dot(d);
-    let b = d.dot(&center_minus_Q) * -2.;
+    let h = d.dot(&center_minus_Q);
     let c = center_minus_Q.length_squared() - radius * radius;
 
-    b * b - 4. * a * c >= 0.
+    let discriminant = h * h - a * c;
+
+    if discriminant < 0. {
+        -1.
+    } else {
+        (h + discriminant.sqrt()) / a
+    }
 }
 
 fn ray_color(ray: &Ray) -> Color {
     let sphere_center = Point::unit_z() * -1.;
     let radius = 0.5;
-    if hit_sphere(&sphere_center, radius, ray) {
-        return Color::red();
+    let t = hit_sphere(&sphere_center, radius, ray);
+    debug!("t={t}");
+    if t >= 0. {
+        let normal = (ray.at(t) - sphere_center).unit();
+        debug!("normal={normal:?}");
+        return Color::new(normal.x + 1., normal.y + 1., normal.z + 1.) * 0.5;
     }
 
     let normalized_direction = ray.direction().unit();
@@ -58,6 +68,7 @@ fn main() {
 
     let aspect_ratio: f32 = 16. / 9.;
     let image_width = 400usize;
+    // let image_width = 40usize;
 
     // Compute height. Ensure at least a height of 1
     let mut image_height = ((image_width as f32) / aspect_ratio) as usize;
