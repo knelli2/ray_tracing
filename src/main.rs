@@ -54,6 +54,7 @@ fn main() {
     camera.center = Point::zero();
     camera.focal_length = 1.;
     camera.viewport_height = 2.;
+    camera.samples_per_pixel = 50;
     camera.filename = "test_image.ppm".to_string();
     camera.output_dir = "/home/knelli/ray_tracing/output/".to_string();
 

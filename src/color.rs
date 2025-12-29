@@ -5,15 +5,16 @@ use std::{
     io::{BufWriter, Write},
 };
 
-use crate::vec3::Vec3;
+use crate::{interval::Interval, vec3::Vec3};
 
 pub type Color = Vec3<f32>;
 
 impl Color {
     pub fn write_color(&self, out_buffer: &mut BufWriter<File>) -> Result<(), std::io::Error> {
-        let r = (255.99 * self.x) as u32;
-        let g = (255.99 * self.y) as u32;
-        let b = (255.99 * self.z) as u32;
+        let intensity = Interval::new(0., 0.999);
+        let r = (256. * intensity.clamp(self.x)) as u32;
+        let g = (256. * intensity.clamp(self.y)) as u32;
+        let b = (256. * intensity.clamp(self.z)) as u32;
 
         writeln!(out_buffer, "{r} {g} {b}")
     }
@@ -31,14 +32,14 @@ impl Color {
     }
 
     pub fn red() -> Color {
-      Color::unit_x()
+        Color::unit_x()
     }
 
     pub fn green() -> Color {
-      Color::unit_y()
+        Color::unit_y()
     }
 
     pub fn blue() -> Color {
-      Color::unit_z()
+        Color::unit_z()
     }
 }
