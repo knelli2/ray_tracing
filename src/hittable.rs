@@ -1,0 +1,45 @@
+use std::{cell::RefCell, rc::Rc};
+
+use crate::{interval::Interval, point::Point, ray::Ray, vec3::Vec3};
+
+#[derive(Default, Debug)]
+pub struct HitRecord {
+    pub hit: bool,
+    pub point: Point,
+    pub normal: Vec3,
+    pub t: f32,
+    pub front_face: bool,
+}
+
+impl HitRecord {
+    /// Set HitRecord.hit = true, everything else default
+    pub fn new_hit() -> Self {
+        let mut record = Self::default();
+        record.hit = true;
+        record
+    }
+
+    pub fn new(hit: bool, point: Point, normal: Vec3, t: f32, front_face: bool) -> Self {
+        Self {
+            hit,
+            point,
+            normal,
+            t,
+            front_face,
+        }
+    }
+
+    /// outward_normal is assumed to be unit length
+    pub fn set_face_normal(&mut self, ray: &Ray, outward_normal: &Vec3) {
+        self.front_face = ray.direction().dot(outward_normal) < 0.;
+        self.normal = if self.front_face {
+            *outward_normal
+        } else {
+            -*outward_normal
+        };
+    }
+}
+
+pub trait Hittable {
+    fn hit(&self, ray: &Ray, ray_t: Interval) -> HitRecord;
+}

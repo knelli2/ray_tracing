@@ -1,18 +1,30 @@
 #![allow(unused, non_snake_case)]
+mod angle_utils;
 mod color;
+mod hittable;
+mod hittable_list;
+mod interval;
 mod point;
 mod ray;
+mod sphere;
 mod vec3;
 
-use env_logger::{Builder, Env, Target};
-use log::{self, debug, info};
+use env_logger::{Builder, Env, Logger, Target};
+use log::{self, Log, debug, info, log_enabled};
+use std::cell::RefCell;
+use std::f32;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
+use std::rc::Rc;
 
 use crate::color::Color;
+use crate::hittable::Hittable;
+use crate::hittable_list::HittableList;
+use crate::interval::Interval;
 use crate::point::Point;
 use crate::ray::Ray;
+use crate::sphere::Sphere;
 use crate::vec3::Vec3;
 
 fn init() {
@@ -20,55 +32,32 @@ fn init() {
     Builder::from_env(env).target(Target::Stdout).init();
 }
 
-/// With P = Q + t*d
-/// |(C - P)|^2 = r2
-/// t^2 d*d - 2td*(C-Q) + |(C-Q)|^2 - r^2 = 0
-///
-/// a = d*d
-/// b = 2d*(C-Q)
-/// h = -b/2
-/// c = |(C-Q)|^2 - r^2
-fn hit_sphere(center: &Point, radius: f32, ray: &Ray) -> f32 {
-    let d = ray.direction();
-    let center_minus_Q = *center - *ray.origin();
-
-    let a = d.dot(d);
-    let h = d.dot(&center_minus_Q);
-    let c = center_minus_Q.length_squared() - radius * radius;
-
-    let discriminant = h * h - a * c;
-
-    if discriminant < 0. {
-        -1.
-    } else {
-        (h + discriminant.sqrt()) / a
-    }
-}
-
-fn ray_color(ray: &Ray) -> Color {
-    let sphere_center = Point::unit_z() * -1.;
-    let radius = 0.5;
-    let t = hit_sphere(&sphere_center, radius, ray);
-    debug!("t={t}");
-    if t >= 0. {
-        let normal = (ray.at(t) - sphere_center).unit();
-        debug!("normal={normal:?}");
-        return Color::new(normal.x + 1., normal.y + 1., normal.z + 1.) * 0.5;
+fn ray_color(world: &HittableList, ray: &Ray) -> Color {
+    let record = world.hit(ray, Interval::half_universe_pos());
+    if record.hit {
+        return Color::new(
+            record.normal.x + 1.,
+            record.normal.y + 1.,
+            record.normal.z + 1.,
+        ) * 0.5;
     }
 
     let normalized_direction = ray.direction().unit();
     let a = 0.5 * (normalized_direction.y + 1.);
     debug!("{}", normalized_direction.y);
-    // return Color::white() * (1.-a) + Color::blue() * a;
-    Color::white() * (1. - a) + Color::new(0.4, 0.5, 1.0) * a
+    return Color::white() * (1. - a) + Color::blue() * a;
+    // Color::white() * (1. - a) + Color::new(0.4, 0.5, 1.0) * a
 }
 
 fn main() {
     init();
 
     let aspect_ratio: f32 = 16. / 9.;
-    let image_width = 400usize;
-    // let image_width = 40usize;
+    let image_width = if log_enabled!(log::Level::Debug) {
+        40usize
+    } else {
+        400usize
+    };
 
     // Compute height. Ensure at least a height of 1
     let mut image_height = ((image_width as f32) / aspect_ratio) as usize;
@@ -85,7 +74,7 @@ fn main() {
     let viewport_u = Vec3::new(viewport_width, 0., 0.);
     let viewport_v = Vec3::new(0., -viewport_height, 0.);
     let viewport_upper_left =
-        camera_center - Vec3::unit_z() * focal_length - (viewport_u + viewport_v) * 0.5;
+        camera_center - Vec3::new(0., 0., focal_length) - (viewport_u + viewport_v) * 0.5;
     debug!("viewport_width={viewport_width:?} viewport_height={viewport_height:?}");
     debug!("viewport_u={viewport_u:?} viewport_v={viewport_v:?}");
     debug!("viewport_upper_left={viewport_upper_left:?}");
@@ -97,11 +86,22 @@ fn main() {
     debug!("pixel_delta_u={pixel_delta_u:?} pixel_delta_v={pixel_delta_u:?}");
     debug!("pixel_00_center={pixel_00_center:?}");
 
+    // World
+    let mut world = HittableList::default();
+    world.add(Rc::new(RefCell::new(Sphere::new(
+        Point::new(0., 0., -1.),
+        0.5,
+    ))));
+    world.add(Rc::new(RefCell::new(Sphere::new(
+        Point::new(0., -100.5, -1.),
+        100.,
+    ))));
+
     // Output file
     let output_dir = "/home/knelli/ray_tracing/output/";
     let filename = "test_image.ppm";
     let file_path = Path::new(&output_dir).join(filename);
-    let out_file = File::create(file_path).expect("Why can't I create the file");
+    let out_file = File::create(&file_path).expect("Why can't I create the file");
     let mut out_buffer = BufWriter::new(out_file);
 
     writeln!(out_buffer, "P3").expect("Unable to write");
@@ -115,12 +115,14 @@ fn main() {
             let pixel_center =
                 pixel_00_center + (pixel_delta_u * (i as f32)) + (pixel_delta_v * (j as f32));
             let ray_direction = pixel_center - camera_center;
-            let ray = Ray::new(pixel_center, ray_direction);
+            let ray = Ray::new(camera_center, ray_direction);
 
-            let pixel_color = ray_color(&ray);
+            let pixel_color = ray_color(&world, &ray);
             pixel_color
                 .write_color(&mut out_buffer)
                 .expect("Could not write pixel color");
         }
     }
+
+    debug!("Done writing image {}", file_path.display());
 }
