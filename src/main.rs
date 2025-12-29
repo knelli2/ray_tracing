@@ -1,8 +1,8 @@
-#![allow(unused)]
+#![allow(unused, non_snake_case)]
 mod color;
 mod point;
-mod vec3;
 mod ray;
+mod vec3;
 
 use env_logger::{Builder, Env, Target};
 use log::{self, debug, info};
@@ -10,22 +10,47 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
 
-use crate::vec3::Vec3;
 use crate::color::Color;
 use crate::point::Point;
 use crate::ray::Ray;
+use crate::vec3::Vec3;
 
 fn init() {
     let env = Env::default().default_filter_or("info");
     Builder::from_env(env).target(Target::Stdout).init();
 }
 
+/// With P = Q + t*d
+/// |(C - P)|^2 = r2
+/// t^2 d*d - 2td*(C-Q) + |(C-Q)|^2 - r^2 = 0
+///
+/// a = d*d
+/// b = 2d*(C-Q)
+/// c = |(C-Q)|^2 - r^2
+fn hit_sphere(center: &Point, radius: f32, ray: &Ray) -> bool {
+    let Q = ray.origin();
+    let d = ray.direction();
+    let center_minus_Q = *center - *Q;
+
+    let a = d.dot(d);
+    let b = d.dot(&center_minus_Q) * -2.;
+    let c = center_minus_Q.length_squared() - radius * radius;
+
+    b * b - 4. * a * c >= 0.
+}
+
 fn ray_color(ray: &Ray) -> Color {
+    let sphere_center = Point::unit_z() * -1.;
+    let radius = 0.5;
+    if hit_sphere(&sphere_center, radius, ray) {
+        return Color::red();
+    }
+
     let normalized_direction = ray.direction().unit();
     let a = 0.5 * (normalized_direction.y + 1.);
     debug!("{}", normalized_direction.y);
     // return Color::white() * (1.-a) + Color::blue() * a;
-    return Color::white() * (1.-a) + Color::new(0.4,0.5,1.0) * a;
+    Color::white() * (1. - a) + Color::new(0.4, 0.5, 1.0) * a
 }
 
 fn main() {
@@ -48,7 +73,8 @@ fn main() {
     let viewport_width = viewport_height * (image_width as f32) / (image_height as f32);
     let viewport_u = Vec3::new(viewport_width, 0., 0.);
     let viewport_v = Vec3::new(0., -viewport_height, 0.);
-    let viewport_upper_left = camera_center - Vec3::unit_z() * focal_length - (viewport_u + viewport_v) * 0.5;
+    let viewport_upper_left =
+        camera_center - Vec3::unit_z() * focal_length - (viewport_u + viewport_v) * 0.5;
     debug!("viewport_width={viewport_width:?} viewport_height={viewport_height:?}");
     debug!("viewport_u={viewport_u:?} viewport_v={viewport_v:?}");
     debug!("viewport_upper_left={viewport_upper_left:?}");
@@ -75,12 +101,15 @@ fn main() {
     for j in 0..image_height {
         debug!("Scanlines remaining: {}", image_height - j);
         for i in 0..image_width {
-            let pixel_center = pixel_00_center + (pixel_delta_u * (i as f32)) + (pixel_delta_v * (j as f32));
+            let pixel_center =
+                pixel_00_center + (pixel_delta_u * (i as f32)) + (pixel_delta_v * (j as f32));
             let ray_direction = pixel_center - camera_center;
             let ray = Ray::new(pixel_center, ray_direction);
 
             let pixel_color = ray_color(&ray);
-            pixel_color.write_color(&mut out_buffer).expect("Could not write pixel color");
+            pixel_color
+                .write_color(&mut out_buffer)
+                .expect("Could not write pixel color");
         }
     }
 }
