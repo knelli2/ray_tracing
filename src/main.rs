@@ -62,16 +62,16 @@ fn main() {
     camera.center = Point::zero();
     camera.focal_length = 1.;
     camera.viewport_height = 2.;
-    camera.samples_per_pixel = 25;
-    camera.max_depth = 25;
+    camera.samples_per_pixel = 100;
+    camera.max_depth = 50;
     camera.filename = "test_image.ppm".to_string();
     camera.output_dir = "/home/knelli/ray_tracing/output/".to_string();
 
     // Materials
     let material_ground = Rc::new(RefCell::new(Lambertian::new(Color::new(0.8, 0.8, 0.0))));
     let material_center = Rc::new(RefCell::new(Lambertian::new(Color::new(0.1, 0.2, 0.5))));
-    let material_left = Rc::new(RefCell::new(Metal::new(Color::grey(0.8))));
-    let material_right = Rc::new(RefCell::new(Metal::new(Color::new(0.8, 0.6, 0.2))));
+    let material_left = Rc::new(RefCell::new(Metal::new(Color::grey(0.8), 0.3)));
+    let material_right = Rc::new(RefCell::new(Metal::new(Color::new(0.8, 0.6, 0.2), 0.8)));
 
     // World
     let mut world = HittableList::default();
