@@ -1,20 +1,29 @@
+use derivative::Derivative;
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{
     hittable::{HitRecord, Hittable},
     interval::Interval,
+    materials::{material::SharedMaterial, metal::Metal},
     point::Point,
 };
 
-#[derive(Default, Debug)]
+#[derive(Derivative)]
+#[derivative(Default, Debug)]
 pub struct Sphere {
     center: Point,
     radius: f32,
+    #[derivative(Default(value = "Rc::new(RefCell::new(Metal::default()))"))]
+    #[derivative(Debug = "ignore")]
+    material: SharedMaterial,
 }
 
 impl Sphere {
-    pub fn new(center: Point, radius: f32) -> Self {
+    pub fn new(center: Point, radius: f32, material: SharedMaterial) -> Self {
         Self {
             center,
             radius: radius.max(0.),
+            material,
         }
     }
 }
@@ -56,6 +65,7 @@ impl Hittable for Sphere {
         record.point = ray.at(record.t);
         let normal = (record.point - self.center) / self.radius;
         record.set_face_normal(ray, &normal);
+        record.material = self.material.clone();
 
         record
     }

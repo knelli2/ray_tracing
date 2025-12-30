@@ -159,12 +159,13 @@ impl Camera {
             //       record.normal.z + 1.,
             //   ) * 0.5;
 
-            // Diffuse
-            // let direction = Vec3::random_on_hemisphere(&record.normal);
-            let direction = record.normal + Vec3::random_unit(); // Lambertian
-            let reflectance = 0.5;
-            return Self::ray_color(world, &Ray::new(record.point, direction), depth - 1)
-                * reflectance; // Grey
+            let material_record = record.material.borrow().scatter(ray, &record);
+            if material_record.scattered {
+                return material_record.attenuation
+                    * Self::ray_color(world, &material_record.scattered_ray, depth - 1);
+            }
+
+            return Color::black();
         }
 
         let normalized_direction = ray.direction().unit();

@@ -169,6 +169,18 @@ impl<T: Vec3Trait> SubAssign for Vec3<T> {
     }
 }
 
+impl<T: Vec3Trait> Mul for Vec3<T> {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Vec3 {
+            x: rhs.x * self.x,
+            y: rhs.y * self.y,
+            z: rhs.z * self.z,
+        }
+    }
+}
+
 impl<T: Vec3Trait> Mul<T> for Vec3<T> {
     type Output = Self;
 
@@ -245,6 +257,11 @@ impl<T: Vec3Trait> Vec3<T> {
             z: T::one(),
         }
     }
+
+    pub fn near_zero(&self) -> bool {
+        let s = T::from(1.0e-8).unwrap();
+        self.x.abs() < s && self.y.abs() < s && self.z.abs() < s
+    }
 }
 
 impl<T: Vec3Trait> Zero for Vec3<T> {
@@ -289,4 +306,8 @@ impl<T: Vec3Trait> Vec3<T> {
     pub fn make_unit(&mut self) {
         *self /= self.length();
     }
+}
+
+pub fn reflect<T: Vec3Trait>(v: &Vec3<T>, normal: &Vec3<T>) -> Vec3<T> {
+    *v - *normal * T::from(2.).unwrap() * v.dot(normal)
 }

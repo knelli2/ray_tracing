@@ -1,12 +1,26 @@
+use derivative::Derivative;
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{interval::Interval, point::Point, ray::Ray, vec3::Vec3};
+use crate::{
+    interval::Interval,
+    materials::{
+        material::{Material, SharedMaterial},
+        metal::Metal,
+    },
+    point::Point,
+    ray::Ray,
+    vec3::Vec3,
+};
 
-#[derive(Default, Debug)]
+#[derive(Derivative)]
+#[derivative(Default, Debug)]
 pub struct HitRecord {
     pub hit: bool,
     pub point: Point,
     pub normal: Vec3,
+    #[derivative(Default(value = "Rc::new(RefCell::new(Metal::default()))"))]
+    #[derivative(Debug = "ignore")]
+    pub material: SharedMaterial,
     pub t: f32,
     pub front_face: bool,
 }
@@ -19,11 +33,19 @@ impl HitRecord {
         record
     }
 
-    pub fn new(hit: bool, point: Point, normal: Vec3, t: f32, front_face: bool) -> Self {
+    pub fn new(
+        hit: bool,
+        point: Point,
+        normal: Vec3,
+        material: Rc<RefCell<dyn Material>>,
+        t: f32,
+        front_face: bool,
+    ) -> Self {
         Self {
             hit,
             point,
             normal,
+            material,
             t,
             front_face,
         }

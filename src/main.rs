@@ -9,6 +9,11 @@ mod ray;
 mod sphere;
 mod utils;
 mod vec3;
+mod materials {
+    pub mod lambertian;
+    pub mod material;
+    pub mod metal;
+}
 
 use env_logger::{Builder, Env, Target};
 use log::{self, LevelFilter, log_enabled};
@@ -16,7 +21,10 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::camera::Camera;
+use crate::color::Color;
 use crate::hittable_list::HittableList;
+use crate::materials::lambertian::Lambertian;
+use crate::materials::metal::Metal;
 use crate::point::Point;
 use crate::sphere::Sphere;
 
@@ -59,15 +67,33 @@ fn main() {
     camera.filename = "test_image.ppm".to_string();
     camera.output_dir = "/home/knelli/ray_tracing/output/".to_string();
 
+    // Materials
+    let material_ground = Rc::new(RefCell::new(Lambertian::new(Color::new(0.8, 0.8, 0.0))));
+    let material_center = Rc::new(RefCell::new(Lambertian::new(Color::new(0.1, 0.2, 0.5))));
+    let material_left = Rc::new(RefCell::new(Metal::new(Color::grey(0.8))));
+    let material_right = Rc::new(RefCell::new(Metal::new(Color::new(0.8, 0.6, 0.2))));
+
     // World
     let mut world = HittableList::default();
     world.add(Rc::new(RefCell::new(Sphere::new(
-        Point::new(0., 0., -1.),
-        0.5,
-    ))));
-    world.add(Rc::new(RefCell::new(Sphere::new(
         Point::new(0., -100.5, -1.),
         100.,
+        material_ground,
+    ))));
+    world.add(Rc::new(RefCell::new(Sphere::new(
+        Point::new(0., 0., -1.2),
+        0.5,
+        material_center,
+    ))));
+    world.add(Rc::new(RefCell::new(Sphere::new(
+        Point::new(-1., 0., -1.0),
+        0.5,
+        material_left,
+    ))));
+    world.add(Rc::new(RefCell::new(Sphere::new(
+        Point::new(1., 0., -1.0),
+        0.5,
+        material_right,
     ))));
 
     // Render
