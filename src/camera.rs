@@ -2,11 +2,11 @@ use std::{
     f32,
     fs::File,
     io::{BufWriter, Write},
-    path::{Path, PathBuf},
+    path::{Path, PathBuf}, time::Instant,
 };
 
 use derivative::Derivative;
-use log::debug;
+use log::{debug, info};
 
 use crate::ray::Ray;
 use crate::{color::Color, utils::random_float_range};
@@ -189,6 +189,8 @@ impl Camera {
             self.initialize();
         }
 
+        let now = Instant::now();
+
         for j in 0..self.image_height {
             debug!("Scanlines remaining: {}", self.image_height - j);
             for i in 0..self.image_width {
@@ -205,6 +207,9 @@ impl Camera {
             }
         }
 
+        let elapsed = now.elapsed();
+
         debug!("Done writing image {}", self.file_path.display());
+        info!("Writing image {} took {} seconds.", self.file_path.display(), elapsed.as_secs_f32());
     }
 }
