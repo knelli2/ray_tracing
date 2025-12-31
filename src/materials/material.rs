@@ -9,6 +9,16 @@ pub struct MaterialRecord {
     pub scattered_ray: Ray,
 }
 
+impl MaterialRecord {
+    pub fn new(scattered: bool, attenuation: Color, scattered_ray: Ray) -> Self {
+        MaterialRecord {
+            scattered,
+            attenuation,
+            scattered_ray,
+        }
+    }
+}
+
 pub trait Material {
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> MaterialRecord {
         MaterialRecord {

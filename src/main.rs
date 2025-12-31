@@ -13,6 +13,7 @@ mod materials {
     pub mod lambertian;
     pub mod material;
     pub mod metal;
+    pub mod dielectric;
 }
 
 use env_logger::{Builder, Env, Target};
@@ -25,6 +26,7 @@ use crate::color::Color;
 use crate::hittable_list::HittableList;
 use crate::materials::lambertian::Lambertian;
 use crate::materials::metal::Metal;
+use crate::materials::dielectric::Dielectric;
 use crate::point::Point;
 use crate::sphere::Sphere;
 
@@ -70,7 +72,8 @@ fn main() {
     // Materials
     let material_ground = Rc::new(RefCell::new(Lambertian::new(Color::new(0.8, 0.8, 0.0))));
     let material_center = Rc::new(RefCell::new(Lambertian::new(Color::new(0.1, 0.2, 0.5))));
-    let material_left = Rc::new(RefCell::new(Metal::new(Color::grey(0.8), 0.3)));
+    let material_left = Rc::new(RefCell::new(Dielectric::new(1.5)));
+    let material_left_bubble = Rc::new(RefCell::new(Dielectric::new(1.0/1.5)));
     let material_right = Rc::new(RefCell::new(Metal::new(Color::new(0.8, 0.6, 0.2), 0.8)));
 
     // World
@@ -89,6 +92,11 @@ fn main() {
         Point::new(-1., 0., -1.0),
         0.5,
         material_left,
+    ))));
+    world.add(Rc::new(RefCell::new(Sphere::new(
+        Point::new(-1., 0., -1.0),
+        0.4,
+        material_left_bubble,
     ))));
     world.add(Rc::new(RefCell::new(Sphere::new(
         Point::new(1., 0., -1.0),

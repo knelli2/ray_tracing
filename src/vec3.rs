@@ -311,3 +311,9 @@ impl<T: Vec3Trait> Vec3<T> {
 pub fn reflect<T: Vec3Trait>(v: &Vec3<T>, normal: &Vec3<T>) -> Vec3<T> {
     *v - *normal * T::from(2.).unwrap() * v.dot(normal)
 }
+
+pub fn refract<T: Vec3Trait>(unit_in: &Vec3<T>, normal: &Vec3<T>, eta_fraction: f32) -> Vec3<T> {
+    let cos_theta = -normal.dot(unit_in).min(T::one());
+    let R_out_perp = (*unit_in + *normal * cos_theta) * T::from(eta_fraction).unwrap();
+    R_out_perp - *normal * (T::one() - R_out_perp.length_squared()).sqrt()
+}
