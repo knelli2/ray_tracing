@@ -14,7 +14,7 @@ use crate::utils::{random_float, random_float_range};
 pub trait Vec3Trait: Float + NumAssignRef + SampleUniform {}
 impl<T: Float + NumAssignRef + SampleUniform> Vec3Trait for T {}
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Vec3<T = f32>
 where
     T: Vec3Trait,

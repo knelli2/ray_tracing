@@ -2,13 +2,14 @@ use std::{
     f32,
     fs::File,
     io::{BufWriter, Write},
-    path::{Path, PathBuf}, time::Instant,
+    path::{Path, PathBuf},
+    time::Instant,
 };
 
 use derivative::Derivative;
-use log::{debug, info};
+use log::{debug, info, trace};
+use num_traits::Zero;
 
-use crate::ray::Ray;
 use crate::{color::Color, utils::random_float_range};
 use crate::{
     hittable::{HitRecord, Hittable},
@@ -17,25 +18,33 @@ use crate::{
     point::Point,
     vec3::Vec3,
 };
+use crate::{
+    ray::Ray,
+    utils::{Degrees, degrees_to_radians},
+};
 
 #[derive(Derivative)]
 #[derivative(Default, Debug)]
 pub struct Camera {
-    // Public camera params
+    // Public resolution params
     pub aspect_ratio: f32,
     pub image_width: usize,
-    pub center: Point,
-    pub focal_length: f32,
-    pub viewport_height: f32,
     pub samples_per_pixel: usize,
     pub max_depth: i32,
+
+    // Public camera params
+    pub center: Point,
+    pub look_at: Vec3,
+    pub view_up: Vec3,
+    pub vertical_fov: Degrees,
 
     // Public output params
     pub filename: String,
     pub output_dir: String,
 
-    // Private camera params
+    // Private resolution params
     image_height: usize,
+    viewport_height: f32,
     viewport_width: f32,
     viewport_u: Vec3,
     viewport_v: Vec3,
@@ -44,6 +53,11 @@ pub struct Camera {
     pixel_00_center: Point,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
+
+    // Private camera params
+    camera_basis_x: Vec3,
+    camera_basis_y: Vec3,
+    camera_basis_z: Vec3,
 
     // Private output params
     file_path: PathBuf,
@@ -59,8 +73,9 @@ impl Camera {
         // Checks
         assert!(self.aspect_ratio > 0.);
         assert!(self.image_width > 0);
-        assert!(self.focal_length > 0.);
-        assert!(self.viewport_height > 0.);
+        assert!(!self.view_up.is_zero());
+        assert!(self.center != self.look_at);
+        assert!(self.vertical_fov.value > 0.);
         assert!(self.samples_per_pixel > 0);
         assert!(self.max_depth > 0);
         assert!(!self.filename.is_empty());
@@ -69,23 +84,36 @@ impl Camera {
         // Input debug
         debug!("Aspect ratio={}", self.aspect_ratio);
         debug!("Center={:?}", self.center);
-        debug!("Focal length={}", self.focal_length);
+        debug!("Look at={:?}", self.look_at);
+        debug!("View up={:?}", self.view_up);
+        debug!("Vertical FoV={}", self.vertical_fov.value);
         debug!("Output dir={}", self.output_dir);
         debug!("Samples per pixel={}", self.samples_per_pixel);
         debug!("Max depth={}", self.max_depth);
         debug!("Filename={}", self.filename);
 
+        // Camera basis
+        self.camera_basis_z = (self.center - self.look_at).unit();
+        self.camera_basis_x = self.view_up.cross(&self.camera_basis_z).unit();
+        self.camera_basis_y = self.camera_basis_z.cross(&self.camera_basis_x);
+
         // Compute height. Ensure at least a height of 1
         self.image_height = ((self.image_width as f32) / self.aspect_ratio) as usize;
         self.image_height = self.image_height.max(1);
 
-        // Viewport self.viewport_width =
+        // Focal length
+        let focal_length = (self.center - self.look_at).length();
+        assert!(focal_length > 0.);
+
+        // Viewport
+        self.viewport_height =
+            2. * (0.5 * degrees_to_radians(&self.vertical_fov).value).tan() * focal_length;
         self.viewport_width =
             self.viewport_height * (self.image_width as f32) / (self.image_height as f32);
-        self.viewport_u = Vec3::new(self.viewport_width, 0., 0.);
-        self.viewport_v = Vec3::new(0., -self.viewport_height, 0.);
+        self.viewport_u = self.camera_basis_x * self.viewport_width;
+        self.viewport_v = -self.camera_basis_y * self.viewport_height;
         self.viewport_upper_left = self.center
-            - Vec3::new(0., 0., self.focal_length)
+            - self.camera_basis_z * focal_length
             - (self.viewport_u + self.viewport_v) * 0.5;
 
         // Pixels in viewport
@@ -95,7 +123,11 @@ impl Camera {
         self.pixel_00_center =
             self.viewport_upper_left + (self.pixel_delta_u + self.pixel_delta_v) * 0.5;
 
-        // Debug for image, viewport, pixels
+        // Debug for image, viewport, pixels, camera
+        debug!("Focal length={}", focal_length);
+        debug!("Camera basis x={:?}", self.camera_basis_x);
+        debug!("Camera basis y={:?}", self.camera_basis_y);
+        debug!("Camera basis z={:?}", self.camera_basis_z);
         debug!(
             "image width={} image_height={}",
             self.image_width, self.image_height
@@ -152,13 +184,6 @@ impl Camera {
 
         let record = world.hit(ray, Interval::new(1.0e-3, f32::INFINITY));
         if record.hit {
-            // Color by normals
-            // return Color::new(
-            //       record.normal.x + 1.,
-            //       record.normal.y + 1.,
-            //       record.normal.z + 1.,
-            //   ) * 0.5;
-
             let material_record = record.material.borrow().scatter(ray, &record);
             if material_record.scattered {
                 return material_record.attenuation
@@ -170,7 +195,6 @@ impl Camera {
 
         let normalized_direction = ray.direction().unit();
         let a = 0.5 * (normalized_direction.y + 1.);
-        debug!("{}", normalized_direction.y);
         return Color::white() * (1. - a) + Color::blue() * a;
         // Color::white() * (1. - a) + Color::new(0.4, 0.5, 1.0) * a
     }
@@ -189,10 +213,11 @@ impl Camera {
             self.initialize();
         }
 
+        debug!("Starting to write image {}", self.file_path.display());
         let now = Instant::now();
 
         for j in 0..self.image_height {
-            debug!("Scanlines remaining: {}", self.image_height - j);
+            trace!("Scanlines remaining: {}", self.image_height - j);
             for i in 0..self.image_width {
                 let mut unaveraged_color = Color::black();
                 for _ in 0..self.samples_per_pixel {
@@ -210,6 +235,10 @@ impl Camera {
         let elapsed = now.elapsed();
 
         debug!("Done writing image {}", self.file_path.display());
-        info!("Writing image {} took {} seconds.", self.file_path.display(), elapsed.as_secs_f32());
+        info!(
+            "Writing image {} took {} seconds.",
+            self.file_path.display(),
+            elapsed.as_secs_f32()
+        );
     }
 }

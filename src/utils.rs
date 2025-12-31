@@ -1,14 +1,36 @@
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 
-use num_traits::{FloatConst, float::Float};
+use num_traits::float::Float;
 use rand::{Rng, distr::uniform::SampleUniform, rngs::ThreadRng};
 
-pub fn degrees_to_radians<T: Float + FloatConst>(degrees: T) -> T {
-    degrees * T::PI() / T::from(180).unwrap()
+#[derive(Default, Debug)]
+pub struct Degrees {
+    pub value: f32,
 }
 
-pub fn radians_to_decrees<T: Float + FloatConst>(radians: T) -> T {
-    radians * T::from(180).unwrap() / T::PI()
+impl Degrees {
+    pub fn new(value: f32) -> Self {
+        Degrees { value }
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct Radians {
+    pub value: f32,
+}
+
+impl Radians {
+    pub fn new(value: f32) -> Self {
+        Radians { value }
+    }
+}
+
+pub fn degrees_to_radians(degrees: &Degrees) -> Radians {
+    Radians::new(degrees.value * PI / 180.)
+}
+
+pub fn radians_to_decrees(radians: &Radians) -> Degrees {
+    Degrees::new(radians.value * 180. / PI)
 }
 
 pub fn random_float<T: Float + SampleUniform>() -> T {

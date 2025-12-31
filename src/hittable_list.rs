@@ -21,7 +21,6 @@ impl Hittable for HittableList {
                 .borrow()
                 .hit(ray, Interval::new(ray_t.min, closest_so_far));
             if object_record.hit {
-                debug!("{object_record:?}");
                 closest_so_far = object_record.t;
                 last_record = object_record;
             }
