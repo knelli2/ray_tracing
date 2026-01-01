@@ -1,14 +1,14 @@
-use std::{cell::RefCell, rc::Rc};
+use std::sync::Arc;
 
 use log::debug;
 
-use crate::hittable::Hittable;
+use crate::hittable::{Hittable, SharedHittable};
 use crate::interval::Interval;
 use crate::{hittable::HitRecord, point::Point, ray::Ray, vec3::Vec3};
 
 #[derive(Default)]
 pub struct HittableList {
-    objects: Vec<Rc<RefCell<dyn Hittable>>>,
+    objects: Vec<Arc<dyn Hittable>>,
 }
 
 impl Hittable for HittableList {
@@ -17,9 +17,7 @@ impl Hittable for HittableList {
         let mut closest_so_far = ray_t.max;
 
         for object in &self.objects {
-            let object_record = object
-                .borrow()
-                .hit(ray, Interval::new(ray_t.min, closest_so_far));
+            let object_record = object.hit(ray, Interval::new(ray_t.min, closest_so_far));
             if object_record.hit {
                 closest_so_far = object_record.t;
                 last_record = object_record;
@@ -31,13 +29,13 @@ impl Hittable for HittableList {
 }
 
 impl HittableList {
-    pub fn from_hittable(object: Rc<RefCell<dyn Hittable>>) -> Self {
+    pub fn from_hittable(object: SharedHittable) -> Self {
         Self {
             objects: vec![object],
         }
     }
 
-    pub fn add(&mut self, object: Rc<RefCell<dyn Hittable>>) {
+    pub fn add(&mut self, object: SharedHittable) {
         self.objects.push(object);
     }
 

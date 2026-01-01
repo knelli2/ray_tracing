@@ -1,5 +1,6 @@
 use derivative::Derivative;
-use std::{cell::RefCell, rc::Rc};
+use rayon::prelude::*;
+use std::sync::Arc;
 
 use crate::{
     interval::Interval,
@@ -18,7 +19,7 @@ pub struct HitRecord {
     pub hit: bool,
     pub point: Point,
     pub normal: Vec3,
-    #[derivative(Default(value = "Rc::new(RefCell::new(Metal::default()))"))]
+    #[derivative(Default(value = "Arc::new(Metal::default())"))]
     #[derivative(Debug = "ignore")]
     pub material: SharedMaterial,
     pub t: f32,
@@ -37,7 +38,7 @@ impl HitRecord {
         hit: bool,
         point: Point,
         normal: Vec3,
-        material: Rc<RefCell<dyn Material>>,
+        material: SharedMaterial,
         t: f32,
         front_face: bool,
     ) -> Self {
@@ -62,6 +63,8 @@ impl HitRecord {
     }
 }
 
-pub trait Hittable {
+pub trait Hittable: Send + Sync {
     fn hit(&self, ray: &Ray, ray_t: Interval) -> HitRecord;
 }
+
+pub type SharedHittable = Arc<dyn Hittable>;

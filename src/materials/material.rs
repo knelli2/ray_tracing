@@ -1,4 +1,5 @@
-use std::{cell::RefCell, rc::Rc};
+use rayon::prelude::*;
+use std::sync::Arc;
 
 use crate::{color::Color, hittable::HitRecord, ray::Ray};
 
@@ -19,7 +20,7 @@ impl MaterialRecord {
     }
 }
 
-pub trait Material {
+pub trait Material: Send + Sync {
     fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> MaterialRecord {
         MaterialRecord {
             scattered: false,
@@ -29,4 +30,4 @@ pub trait Material {
     }
 }
 
-pub type SharedMaterial = Rc<RefCell<dyn Material>>;
+pub type SharedMaterial = Arc<dyn Material>;

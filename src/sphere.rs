@@ -1,5 +1,5 @@
 use derivative::Derivative;
-use std::{cell::RefCell, rc::Rc};
+use std::sync::Arc;
 
 use crate::{
     hittable::{HitRecord, Hittable},
@@ -13,7 +13,7 @@ use crate::{
 pub struct Sphere {
     center: Point,
     radius: f32,
-    #[derivative(Default(value = "Rc::new(RefCell::new(Metal::default()))"))]
+    #[derivative(Default(value = "Arc::new(Metal::default())"))]
     #[derivative(Debug = "ignore")]
     material: SharedMaterial,
 }

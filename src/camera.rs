@@ -195,7 +195,7 @@ impl Camera {
 
         let record = world.hit(ray, Interval::new(1.0e-3, f32::INFINITY));
         if record.hit {
-            let material_record = record.material.borrow().scatter(ray, &record);
+            let material_record = record.material.scatter(ray, &record);
             if material_record.scattered {
                 return material_record.attenuation
                     * Self::ray_color(world, &material_record.scattered_ray, depth - 1);
@@ -230,7 +230,49 @@ impl Camera {
         Ray::new(ray_origin, pixel_sample - ray_origin)
     }
 
-    pub fn render(&mut self, world: &HittableList) {
+    fn render_pixel(&self, out_color: &mut Color, linear_index: usize, world: &HittableList) {
+        let i = linear_index % self.image_width;
+        let j = linear_index / self.image_width;
+
+        for _ in 0..self.samples_per_pixel {
+            let ray = self.get_ray(i, j);
+            *out_color += Self::ray_color(world, &ray, self.max_depth);
+        }
+
+        *out_color *= self.one_over_samples_per_pixel;
+    }
+
+    fn render_non_parallel(&mut self, world: &HittableList) -> Vec<Color> {
+        let length = self.image_height * self.image_width;
+        let mut result = vec![Color::black(); length];
+
+        result
+            .iter_mut()
+            .enumerate()
+            .for_each(|(linear_index, out_color)| {
+                self.render_pixel(out_color, linear_index, world)
+            });
+
+        result
+    }
+
+    fn render_parallel(&mut self, world: &HittableList, num_threads: usize) -> Vec<Color> {
+        use rayon::prelude::*;
+
+        let length = self.image_height * self.image_width;
+        let mut result = vec![Color::black(); length];
+
+        result
+            .par_iter_mut()
+            .enumerate()
+            .for_each(|(linear_index, out_color)| {
+                self.render_pixel(out_color, linear_index, world)
+            });
+
+        result
+    }
+
+    pub fn render(&mut self, world: &HittableList, num_threads: usize) {
         if !self.initialized {
             self.initialize();
         }
@@ -238,21 +280,16 @@ impl Camera {
         debug!("Starting to write image {}", self.file_path.display());
         let now = Instant::now();
 
-        for j in 0..self.image_height {
-            trace!("Scanlines remaining: {}", self.image_height - j);
-            for i in 0..self.image_width {
-                let mut unaveraged_color = Color::black();
-                for _ in 0..self.samples_per_pixel {
-                    let ray = self.get_ray(i, j);
-                    unaveraged_color += Self::ray_color(world, &ray, self.max_depth);
-                }
-
-                let pixel_color = unaveraged_color * self.one_over_samples_per_pixel;
-                pixel_color
-                    .write_color(self.out_buffer.as_mut().unwrap())
-                    .expect("Could not write pixel color");
-            }
-        }
+        let pixels = if num_threads > 1 {
+            self.render_parallel(world, num_threads)
+        } else {
+            self.render_non_parallel(world)
+        };
+        pixels.iter().for_each(|pixel| {
+            pixel
+                .write_color(self.out_buffer.as_mut().unwrap())
+                .expect("Could not write pixel color")
+        });
 
         let elapsed = now.elapsed();
 

@@ -16,11 +16,11 @@ mod materials {
     pub mod metal;
 }
 
+use clap::{Parser, Subcommand};
 use env_logger::{Builder, Env, Target};
 use log::{self, LevelFilter, log_enabled};
-use std::cell::RefCell;
 use std::f32::consts::FRAC_PI_4;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::camera::Camera;
 use crate::color::Color;
@@ -32,8 +32,23 @@ use crate::point::Point;
 use crate::sphere::Sphere;
 use crate::utils::Degrees;
 
-fn env_init() {
-    let env = Env::default().default_filter_or("info");
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    #[arg(short = 'j', long, default_value_t = 1)]
+    num_threads: usize,
+
+    #[arg(short = 'd', long, default_value = "info")]
+    debug_level: String,
+}
+
+fn env_init() -> Cli {
+    let cli = Cli::parse();
+
+    rayon::ThreadPoolBuilder::new().num_threads(cli.num_threads).build_global().unwrap();
+    println!("Rendering with {} threads", cli.num_threads);
+
+    let env = Env::default().default_filter_or(&cli.debug_level);
     Builder::from_env(env).target(Target::Stdout).init();
 
     let current_level = log::max_level();
@@ -46,6 +61,8 @@ fn env_init() {
         LevelFilter::Debug => println!("DEBUG, INFO, WARN, and ERROR messages are enabled."),
         LevelFilter::Trace => println!("TRACE messages and all others are enabled."),
     }
+
+    cli
 }
 
 fn camera_init() -> Camera {
@@ -54,66 +71,66 @@ fn camera_init() -> Camera {
 
 fn make_glass_metal_diffuse_world() -> HittableList {
     // Materials
-    let material_ground = Rc::new(RefCell::new(Lambertian::new(Color::new(0.8, 0.8, 0.0))));
-    let material_center = Rc::new(RefCell::new(Lambertian::new(Color::new(0.1, 0.2, 0.5))));
-    let material_left = Rc::new(RefCell::new(Dielectric::new(1.5)));
-    let material_left_bubble = Rc::new(RefCell::new(Dielectric::new(1.0 / 1.5)));
-    let material_right = Rc::new(RefCell::new(Metal::new(Color::new(0.8, 0.6, 0.2), 0.8)));
+    let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0)));
+    let material_center = Arc::new(Lambertian::new(Color::new(0.1, 0.2, 0.5)));
+    let material_left = Arc::new(Dielectric::new(1.5));
+    let material_left_bubble = Arc::new(Dielectric::new(1.0 / 1.5));
+    let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 0.8));
 
     // World
     let mut world = HittableList::default();
-    world.add(Rc::new(RefCell::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Point::new(0., -100.5, -1.),
         100.,
         material_ground,
-    ))));
-    world.add(Rc::new(RefCell::new(Sphere::new(
+    )));
+    world.add(Arc::new(Sphere::new(
         Point::new(0., 0., -1.2),
         0.5,
         material_center,
-    ))));
-    world.add(Rc::new(RefCell::new(Sphere::new(
+    )));
+    world.add(Arc::new(Sphere::new(
         Point::new(-1., 0., -1.0),
         0.5,
         material_left,
-    ))));
-    world.add(Rc::new(RefCell::new(Sphere::new(
+    )));
+    world.add(Arc::new(Sphere::new(
         Point::new(-1., 0., -1.0),
         0.4,
         material_left_bubble,
-    ))));
-    world.add(Rc::new(RefCell::new(Sphere::new(
+    )));
+    world.add(Arc::new(Sphere::new(
         Point::new(1., 0., -1.0),
         0.5,
         material_right,
-    ))));
+    )));
 
     world
 }
 
 fn make_camera_test_world() -> HittableList {
-    let material_left = Rc::new(RefCell::new(Lambertian::new(Color::blue())));
-    let material_right = Rc::new(RefCell::new(Lambertian::new(Color::red())));
+    let material_left = Arc::new(Lambertian::new(Color::blue()));
+    let material_right = Arc::new(Lambertian::new(Color::red()));
 
     let R = FRAC_PI_4.cos();
 
     let mut world = HittableList::default();
-    world.add(Rc::new(RefCell::new(Sphere::new(
+    world.add(Arc::new(Sphere::new(
         Point::new(-R, 0., -1.),
         R,
         material_left,
-    ))));
-    world.add(Rc::new(RefCell::new(Sphere::new(
+    )));
+    world.add(Arc::new(Sphere::new(
         Point::new(R, 0., -1.),
         R,
         material_right,
-    ))));
+    )));
 
     world
 }
 
 fn main() {
-    env_init();
+    let cli = env_init();
 
     // Camera
     let mut camera = camera_init();
@@ -127,8 +144,8 @@ fn main() {
     camera.look_at = Point::new(0., 0., -1.);
     camera.view_up = Point::unit_y();
     camera.vertical_fov = Degrees::new(20.);
-    camera.samples_per_pixel = 50;
-    camera.max_depth = 25;
+    camera.samples_per_pixel = 100;
+    camera.max_depth = 50;
     camera.defocus_angle = Degrees::new(10.);
     camera.focus_distance = 3.4;
     camera.filename = "test_image.ppm".to_string();
@@ -138,5 +155,5 @@ fn main() {
     // let world = make_camera_test_world();
 
     // Render
-    camera.render(&world);
+    camera.render(&world, cli.num_threads);
 }
