@@ -30,7 +30,7 @@ use crate::materials::lambertian::Lambertian;
 use crate::materials::metal::Metal;
 use crate::point::Point;
 use crate::sphere::Sphere;
-use crate::utils::Degrees;
+use crate::utils::{Degrees, random_float, random_float_range};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -45,7 +45,10 @@ struct Cli {
 fn env_init() -> Cli {
     let cli = Cli::parse();
 
-    rayon::ThreadPoolBuilder::new().num_threads(cli.num_threads).build_global().unwrap();
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(cli.num_threads)
+        .build_global()
+        .unwrap();
     println!("Rendering with {} threads", cli.num_threads);
 
     let env = Env::default().default_filter_or(&cli.debug_level);
@@ -129,9 +132,85 @@ fn make_camera_test_world() -> HittableList {
     world
 }
 
-fn main() {
-    let cli = env_init();
+fn make_many_spheres_world() -> HittableList {
+    let mut world = HittableList::default();
 
+    // Ground
+    world.add(Arc::new(Sphere::new(
+        Point::new(0., -1000., 0.),
+        1000.,
+        Arc::new(Lambertian::new(Color::grey(0.5))),
+    )));
+
+    let glass_index = 1.5;
+
+    // Many small spheres
+    let small_sphere_radius = 0.2;
+    let sphere_field_center = Point::new(4., 0.2, 0.);
+    let sphere_bound = 11;
+    for a in -sphere_bound..sphere_bound {
+        for b in -sphere_bound..sphere_bound {
+            let center = Point::new(
+                (a as f32) + 0.9 * random_float::<f32>(),
+                0.2,
+                (b as f32) + 0.9 * random_float::<f32>(),
+            );
+
+            if (center - sphere_field_center).length() > 0.9 {
+                let material_chooser: f32 = random_float();
+
+                if material_chooser < 0.8 {
+                    // Diffuse
+                    let albedo = Color::random() * Color::random();
+                    world.add(Arc::new(Sphere::new(
+                        center,
+                        small_sphere_radius,
+                        Arc::new(Lambertian::new(albedo)),
+                    )));
+                } else if material_chooser < 0.95 {
+                    // Metal
+                    let albedo = Color::random_range(0.5, 1.);
+                    let fuzz = random_float_range(0., 0.5);
+                    world.add(Arc::new(Sphere::new(
+                        center,
+                        small_sphere_radius,
+                        Arc::new(Metal::new(albedo, fuzz)),
+                    )));
+                } else {
+                    // Glass
+                    world.add(Arc::new(Sphere::new(
+                        center,
+                        small_sphere_radius,
+                        Arc::new(Dielectric::new(glass_index)),
+                    )));
+                }
+            }
+        }
+    }
+
+    let large_sphere_radius = 1.0;
+
+    // 3 large spheres
+    world.add(Arc::new(Sphere::new(
+        Point::unit_y(),
+        large_sphere_radius,
+        Arc::new(Dielectric::new(glass_index)),
+    )));
+    world.add(Arc::new(Sphere::new(
+        Point::new(-4.0, 1.0, 0.0),
+        large_sphere_radius,
+        Arc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1))),
+    )));
+    world.add(Arc::new(Sphere::new(
+        Point::new(4.0, 1.0, 0.0),
+        large_sphere_radius,
+        Arc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0)),
+    )));
+
+    world
+}
+
+fn make_test_camera() -> Camera {
     // Camera
     let mut camera = camera_init();
     camera.aspect_ratio = 16. / 9.;
@@ -151,8 +230,36 @@ fn main() {
     camera.filename = "test_image.ppm".to_string();
     camera.output_dir = "/home/knelli/ray_tracing/output/".to_string();
 
-    let world = make_glass_metal_diffuse_world();
+    camera
+}
+
+fn make_many_spheres_camera() -> Camera {
+    // Camera
+    let mut camera = camera_init();
+    camera.aspect_ratio = 16. / 9.;
+    camera.image_width = 1920;
+    camera.center = Point::new(13.0, 2.0, 3.0);
+    camera.look_at = Point::new(0., 0., 0.);
+    camera.view_up = Point::unit_y();
+    camera.vertical_fov = Degrees::new(20.);
+    camera.samples_per_pixel = 100;
+    camera.max_depth = 10;
+    camera.defocus_angle = Degrees::new(0.6);
+    camera.focus_distance = 10.0;
+    camera.filename = "many_spheres.ppm".to_string();
+    camera.output_dir = "/home/knelli/ray_tracing/output/".to_string();
+
+    camera
+}
+
+fn main() {
+    let cli = env_init();
+
+    // let world = make_glass_metal_diffuse_world();
     // let world = make_camera_test_world();
+    let world = make_many_spheres_world();
+
+    let mut camera = make_many_spheres_camera();
 
     // Render
     camera.render(&world, cli.num_threads);
