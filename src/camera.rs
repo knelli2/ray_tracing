@@ -38,6 +38,10 @@ pub struct Camera {
     pub view_up: Vec3,
     pub vertical_fov: Degrees,
 
+    // Public focus params
+    pub defocus_angle: Degrees,
+    pub focus_distance: f32,
+
     // Public output params
     pub filename: String,
     pub output_dir: String,
@@ -53,6 +57,10 @@ pub struct Camera {
     pixel_00_center: Point,
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
+
+    // Private focus params
+    defocus_disk_u: Vec3,
+    defocus_disk_v: Vec3,
 
     // Private camera params
     camera_basis_x: Vec3,
@@ -87,9 +95,11 @@ impl Camera {
         debug!("Look at={:?}", self.look_at);
         debug!("View up={:?}", self.view_up);
         debug!("Vertical FoV={}", self.vertical_fov.value);
-        debug!("Output dir={}", self.output_dir);
         debug!("Samples per pixel={}", self.samples_per_pixel);
         debug!("Max depth={}", self.max_depth);
+        debug!("Defocus angle={}", self.defocus_angle.value);
+        debug!("Focus distance={}", self.focus_distance);
+        debug!("Output dir={}", self.output_dir);
         debug!("Filename={}", self.filename);
 
         // Camera basis
@@ -97,23 +107,25 @@ impl Camera {
         self.camera_basis_x = self.view_up.cross(&self.camera_basis_z).unit();
         self.camera_basis_y = self.camera_basis_z.cross(&self.camera_basis_x);
 
+        // Defocus vectors
+        let defocus_radius =
+            self.focus_distance * (0.5 * degrees_to_radians(&self.defocus_angle).value).tan();
+        self.defocus_disk_u = self.camera_basis_x * defocus_radius;
+        self.defocus_disk_v = self.camera_basis_y * defocus_radius;
+
         // Compute height. Ensure at least a height of 1
         self.image_height = ((self.image_width as f32) / self.aspect_ratio) as usize;
         self.image_height = self.image_height.max(1);
 
-        // Focal length
-        let focal_length = (self.center - self.look_at).length();
-        assert!(focal_length > 0.);
-
         // Viewport
         self.viewport_height =
-            2. * (0.5 * degrees_to_radians(&self.vertical_fov).value).tan() * focal_length;
+            2. * (0.5 * degrees_to_radians(&self.vertical_fov).value).tan() * self.focus_distance;
         self.viewport_width =
             self.viewport_height * (self.image_width as f32) / (self.image_height as f32);
         self.viewport_u = self.camera_basis_x * self.viewport_width;
         self.viewport_v = -self.camera_basis_y * self.viewport_height;
         self.viewport_upper_left = self.center
-            - self.camera_basis_z * focal_length
+            - self.camera_basis_z * self.focus_distance
             - (self.viewport_u + self.viewport_v) * 0.5;
 
         // Pixels in viewport
@@ -124,7 +136,6 @@ impl Camera {
             self.viewport_upper_left + (self.pixel_delta_u + self.pixel_delta_v) * 0.5;
 
         // Debug for image, viewport, pixels, camera
-        debug!("Focal length={}", focal_length);
         debug!("Camera basis x={:?}", self.camera_basis_x);
         debug!("Camera basis y={:?}", self.camera_basis_y);
         debug!("Camera basis z={:?}", self.camera_basis_z);
@@ -199,13 +210,24 @@ impl Camera {
         // Color::white() * (1. - a) + Color::new(0.4, 0.5, 1.0) * a
     }
 
+    fn defocus_disk_sample(&self) -> Point {
+        let random_p = Point::random_in_unit_disk();
+
+        self.center + (self.defocus_disk_u * random_p.x) + (self.defocus_disk_v * random_p.y)
+    }
+
     fn get_ray(&self, i: usize, j: usize) -> Ray {
         let offset = self.sample_square();
         let pixel_sample = self.pixel_00_center
             + self.pixel_delta_u * ((i as f32) + offset.x)
             + self.pixel_delta_v * ((j as f32) + offset.y);
 
-        Ray::new(self.center, pixel_sample - self.center)
+        let ray_origin = if self.defocus_angle.value <= 0. {
+            self.center
+        } else {
+            self.defocus_disk_sample()
+        };
+        Ray::new(ray_origin, pixel_sample - ray_origin)
     }
 
     pub fn render(&mut self, world: &HittableList) {

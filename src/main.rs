@@ -129,6 +129,8 @@ fn main() {
     camera.vertical_fov = Degrees::new(20.);
     camera.samples_per_pixel = 50;
     camera.max_depth = 25;
+    camera.defocus_angle = Degrees::new(10.);
+    camera.focus_distance = 3.4;
     camera.filename = "test_image.ppm".to_string();
     camera.output_dir = "/home/knelli/ray_tracing/output/".to_string();
 

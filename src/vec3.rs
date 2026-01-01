@@ -64,6 +64,13 @@ impl<T: Vec3Trait> Vec3<T> {
             -random_unit
         }
     }
+
+    pub fn random_in_unit_disk() -> Vec3<T> {
+        let mut no_z = Self::random();
+        no_z.z = T::zero();
+        no_z.make_unit();
+        no_z * random_float_range(T::from(0.001).unwrap(), T::one())
+    }
 }
 
 impl<T: Vec3Trait> From<(T, T, T)> for Vec3<T> {
