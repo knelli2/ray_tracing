@@ -1,5 +1,5 @@
 use derivative::Derivative;
-use std::sync::Arc;
+use std::{any::Any, sync::Arc};
 
 use crate::{
     hittable::{HitRecord, Hittable},
@@ -25,6 +25,10 @@ impl Sphere {
             radius: radius.max(0.),
             material,
         }
+    }
+
+    pub fn center(&self) -> &Point {
+        &self.center
     }
 }
 
@@ -68,5 +72,9 @@ impl Hittable for Sphere {
         record.material = self.material.clone();
 
         record
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

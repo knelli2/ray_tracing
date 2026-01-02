@@ -132,6 +132,28 @@ fn make_camera_test_world() -> HittableList {
     world
 }
 
+fn outside_large_spheres(
+    center: &Point,
+    small_sphere_radius: f32,
+    large_sphere_radius: f32,
+    large_sphere_1_center: &Point,
+    large_sphere_2_center: &Point,
+    large_sphere_3_center: &Point,
+) -> bool {
+    let threshold = small_sphere_radius + large_sphere_radius;
+
+    (*center - *large_sphere_1_center).length() > threshold
+        && (*center - *large_sphere_2_center).length() > threshold
+        && (*center - *large_sphere_3_center).length() > threshold
+}
+
+fn outside_other_spheres(center: &Point, small_sphere_radius: f32, world: &HittableList) -> bool {
+    world.objects.iter().all(|s| {
+        (*center - *s.as_any().downcast_ref::<Sphere>().unwrap().center()).length()
+            > (2. * small_sphere_radius)
+    })
+}
+
 fn make_many_spheres_world() -> HittableList {
     let mut world = HittableList::default();
 
@@ -144,9 +166,29 @@ fn make_many_spheres_world() -> HittableList {
 
     let glass_index = 1.5;
 
+    // 3 large spheres
+    let large_sphere_radius = 1.0;
+    let large_sphere_1_center = Point::unit_y();
+    let large_sphere_2_center = Point::new(-4.0, 1.0, 0.0);
+    let large_sphere_3_center = Point::new(4.0, 1.0, 0.0);
+    world.add(Arc::new(Sphere::new(
+        large_sphere_1_center,
+        large_sphere_radius,
+        Arc::new(Dielectric::new(glass_index)),
+    )));
+    world.add(Arc::new(Sphere::new(
+        large_sphere_2_center,
+        large_sphere_radius,
+        Arc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1))),
+    )));
+    world.add(Arc::new(Sphere::new(
+        large_sphere_3_center,
+        large_sphere_radius,
+        Arc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0)),
+    )));
+
     // Many small spheres
     let small_sphere_radius = 0.2;
-    let sphere_field_center = Point::new(4., 0.2, 0.);
     let sphere_bound = 11;
     for a in -sphere_bound..sphere_bound {
         for b in -sphere_bound..sphere_bound {
@@ -156,7 +198,15 @@ fn make_many_spheres_world() -> HittableList {
                 (b as f32) + 0.9 * random_float::<f32>(),
             );
 
-            if (center - sphere_field_center).length() > 0.9 {
+            if outside_large_spheres(
+                &center,
+                small_sphere_radius,
+                large_sphere_radius,
+                &large_sphere_1_center,
+                &large_sphere_2_center,
+                &large_sphere_3_center,
+            ) && outside_other_spheres(&center, small_sphere_radius, &world)
+            {
                 let material_chooser: f32 = random_float();
 
                 if material_chooser < 0.8 {
@@ -187,25 +237,6 @@ fn make_many_spheres_world() -> HittableList {
             }
         }
     }
-
-    let large_sphere_radius = 1.0;
-
-    // 3 large spheres
-    world.add(Arc::new(Sphere::new(
-        Point::unit_y(),
-        large_sphere_radius,
-        Arc::new(Dielectric::new(glass_index)),
-    )));
-    world.add(Arc::new(Sphere::new(
-        Point::new(-4.0, 1.0, 0.0),
-        large_sphere_radius,
-        Arc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1))),
-    )));
-    world.add(Arc::new(Sphere::new(
-        Point::new(4.0, 1.0, 0.0),
-        large_sphere_radius,
-        Arc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0)),
-    )));
 
     world
 }
@@ -242,12 +273,12 @@ fn make_many_spheres_camera() -> Camera {
     camera.look_at = Point::new(0., 0., 0.);
     camera.view_up = Point::unit_y();
     camera.vertical_fov = Degrees::new(20.);
-    camera.samples_per_pixel = 100;
-    camera.max_depth = 10;
+    camera.samples_per_pixel = 500;
+    camera.max_depth = 50;
     camera.defocus_angle = Degrees::new(0.6);
     camera.focus_distance = 10.0;
     camera.filename = "many_spheres.ppm".to_string();
-    camera.output_dir = "/home/knelli/ray_tracing/output/".to_string();
+    camera.output_dir = "output/".to_string();
 
     camera
 }

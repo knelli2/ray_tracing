@@ -206,8 +206,8 @@ impl Camera {
 
         let normalized_direction = ray.direction().unit();
         let a = 0.5 * (normalized_direction.y + 1.);
-        return Color::white() * (1. - a) + Color::blue() * a;
-        // Color::white() * (1. - a) + Color::new(0.4, 0.5, 1.0) * a
+        // return Color::white() * (1. - a) + Color::blue() * a;
+        Color::white() * (1. - a) + Color::new(0.4, 0.5, 1.0) * a
     }
 
     fn defocus_disk_sample(&self) -> Point {

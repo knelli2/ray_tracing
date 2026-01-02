@@ -1,6 +1,6 @@
 use derivative::Derivative;
 use rayon::prelude::*;
-use std::sync::Arc;
+use std::{any::Any, sync::Arc};
 
 use crate::{
     interval::Interval,
@@ -65,6 +65,7 @@ impl HitRecord {
 
 pub trait Hittable: Send + Sync {
     fn hit(&self, ray: &Ray, ray_t: Interval) -> HitRecord;
+    fn as_any(&self) -> &dyn Any;
 }
 
 pub type SharedHittable = Arc<dyn Hittable>;

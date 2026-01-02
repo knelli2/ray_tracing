@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::sync::Arc;
 
 use log::debug;
@@ -8,7 +9,7 @@ use crate::{hittable::HitRecord, point::Point, ray::Ray, vec3::Vec3};
 
 #[derive(Default)]
 pub struct HittableList {
-    objects: Vec<Arc<dyn Hittable>>,
+    pub objects: Vec<Arc<dyn Hittable>>,
 }
 
 impl Hittable for HittableList {
@@ -25,6 +26,10 @@ impl Hittable for HittableList {
         }
 
         last_record
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
