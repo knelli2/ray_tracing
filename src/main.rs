@@ -15,6 +15,12 @@ mod materials {
     pub mod material;
     pub mod metal;
 }
+mod paths {
+    pub mod line;
+    pub mod path;
+    pub mod stationary;
+    pub mod circle;
+}
 
 use clap::{Parser, Subcommand};
 use env_logger::{Builder, Env, Target};
@@ -28,6 +34,8 @@ use crate::hittable_list::HittableList;
 use crate::materials::dielectric::Dielectric;
 use crate::materials::lambertian::Lambertian;
 use crate::materials::metal::Metal;
+use crate::paths::line::Line;
+use crate::paths::stationary::Stationary;
 use crate::point::Point;
 use crate::sphere::Sphere;
 use crate::utils::{Degrees, random_float, random_float_range};
@@ -250,16 +258,18 @@ fn make_test_camera() -> Camera {
     } else {
         400usize
     };
-    camera.center = Point::new(-2., 2., 1.);
-    camera.look_at = Point::new(0., 0., -1.);
+    camera.look_from = Box::new(Line::new(Point::new(-2., 2., 1.), Point::new(2., 2., 1.)));
+    camera.look_at = Box::new(Stationary::new(Point::new(0., 0., -1.)));
     camera.view_up = Point::unit_y();
-    camera.vertical_fov = Degrees::new(20.);
-    camera.samples_per_pixel = 100;
+    camera.vertical_fov = Degrees::new(40.);
+    camera.samples_per_pixel = 50;
     camera.max_depth = 50;
-    camera.defocus_angle = Degrees::new(10.);
-    camera.focus_distance = 3.4;
-    camera.filename = "test_image.ppm".to_string();
-    camera.output_dir = "/home/knelli/ray_tracing/output/".to_string();
+    camera.defocus_angle = Degrees::new(0.5);
+    camera.focus_distance = 5.0;
+    camera.num_frames = 5;
+    camera.file_extension = "ppm".to_string();
+    camera.filename_prefix = "test_image".to_string();
+    camera.output_dir = "output/".to_string();
 
     camera
 }
@@ -269,15 +279,16 @@ fn make_many_spheres_camera() -> Camera {
     let mut camera = camera_init();
     camera.aspect_ratio = 16. / 9.;
     camera.image_width = 1920;
-    camera.center = Point::new(13.0, 2.0, 3.0);
-    camera.look_at = Point::new(0., 0., 0.);
+    camera.look_from = Box::new(Stationary::new(Point::new(13.0, 2.0, 3.0)));
+    camera.look_at = Box::new(Stationary::new(Point::new(0., 0., 0.)));
     camera.view_up = Point::unit_y();
     camera.vertical_fov = Degrees::new(20.);
     camera.samples_per_pixel = 500;
     camera.max_depth = 50;
     camera.defocus_angle = Degrees::new(0.6);
     camera.focus_distance = 10.0;
-    camera.filename = "many_spheres.ppm".to_string();
+    camera.filename_prefix = "many_spheres".to_string();
+    camera.file_extension = "ppm".to_string();
     camera.output_dir = "output/".to_string();
 
     camera
@@ -286,11 +297,12 @@ fn make_many_spheres_camera() -> Camera {
 fn main() {
     let cli = env_init();
 
-    // let world = make_glass_metal_diffuse_world();
+    let world = make_glass_metal_diffuse_world();
     // let world = make_camera_test_world();
-    let world = make_many_spheres_world();
+    // let world = make_many_spheres_world();
 
-    let mut camera = make_many_spheres_camera();
+    let mut camera = make_test_camera();
+    // let mut camera = make_many_spheres_camera();
 
     // Render
     camera.render(&world, cli.num_threads);
