@@ -131,8 +131,9 @@ fn make_camera_test_world() -> HittableList {
         R,
         material_left,
     )));
-    world.add(Arc::new(Sphere::new(
+    world.add(Arc::new(Sphere::new_moving(
         Point::new(R, 0., -1.),
+        Point::new(R, 0., -1.5),
         R,
         material_right,
     )));
@@ -157,7 +158,7 @@ fn outside_large_spheres(
 
 fn outside_other_spheres(center: &Point, small_sphere_radius: f32, world: &HittableList) -> bool {
     world.objects.iter().all(|s| {
-        (*center - *s.as_any().downcast_ref::<Sphere>().unwrap().center()).length()
+        (*center - *s.as_any().downcast_ref::<Sphere>().unwrap().center().origin()).length()
             > (2. * small_sphere_radius)
     })
 }
@@ -249,7 +250,7 @@ fn make_many_spheres_world() -> HittableList {
     world
 }
 
-fn make_test_camera() -> Camera {
+fn make_moving_test_camera() -> Camera {
     // Camera
     let mut camera = camera_init();
     camera.aspect_ratio = 16. / 9.;
@@ -267,6 +268,31 @@ fn make_test_camera() -> Camera {
     camera.defocus_angle = Degrees::new(0.5);
     camera.focus_distance = 5.0;
     camera.num_frames = 5;
+    camera.file_extension = "ppm".to_string();
+    camera.filename_prefix = "test_image".to_string();
+    camera.output_dir = "output/".to_string();
+
+    camera
+}
+
+fn make_stationary_test_camera() -> Camera {
+    // Camera
+    let mut camera = camera_init();
+    camera.aspect_ratio = 16. / 9.;
+    camera.image_width = if log_enabled!(log::Level::Debug) {
+        40usize
+    } else {
+        400usize
+    };
+    camera.look_from = Box::new(Stationary::new(Point::new(-2., 2., 1.)));
+    camera.look_at = Box::new(Stationary::new(Point::new(0., 0., -1.)));
+    camera.view_up = Point::unit_y();
+    camera.vertical_fov = Degrees::new(40.);
+    camera.samples_per_pixel = 50;
+    camera.max_depth = 50;
+    camera.defocus_angle = Degrees::new(0.5);
+    camera.focus_distance = 5.0;
+    camera.num_frames = 1;
     camera.file_extension = "ppm".to_string();
     camera.filename_prefix = "test_image".to_string();
     camera.output_dir = "output/".to_string();
@@ -297,11 +323,11 @@ fn make_many_spheres_camera() -> Camera {
 fn main() {
     let cli = env_init();
 
-    let world = make_glass_metal_diffuse_world();
-    // let world = make_camera_test_world();
+    // let world = make_glass_metal_diffuse_world();
+    let world = make_camera_test_world();
     // let world = make_many_spheres_world();
 
-    let mut camera = make_test_camera();
+    let mut camera = make_stationary_test_camera();
     // let mut camera = make_many_spheres_camera();
 
     // Render

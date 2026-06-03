@@ -27,7 +27,7 @@ impl Material for Lambertian {
         }
 
         let mut material_record = MaterialRecord::default();
-        material_record.scattered_ray = Ray::new(hit_record.point, direction);
+        material_record.scattered_ray = Ray::new(hit_record.point, direction, ray.time());
         material_record.attenuation = self.albedo;
         material_record.scattered = true;
 

@@ -8,13 +8,23 @@ use std::fmt::Debug;
 pub struct Ray {
     origin: Point,
     direction: Vec3,
+    time: f32,
 }
 
 impl Ray {
-    pub fn new(origin: Point, direction: Vec3) -> Self {
+    pub fn new(origin: Point, direction: Vec3, time: f32) -> Self {
         Self {
             origin: origin,
             direction: direction,
+            time: time,
+        }
+    }
+
+    pub fn new_t0(origin: Point, direction: Vec3) -> Self {
+        Self {
+            origin: origin,
+            direction: direction,
+            time: 0.0,
         }
     }
 
@@ -28,5 +38,9 @@ impl Ray {
 
     pub fn at(&self, t: f32) -> Point {
       self.origin + self.direction * t
+    }
+
+    pub fn time(&self) -> f32 {
+        self.time
     }
 }

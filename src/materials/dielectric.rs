@@ -41,6 +41,7 @@ impl Material for Dielectric {
                 Ray::new(
                     hit_record.point,
                     reflect(&unit_direction, &hit_record.normal),
+                    ray.time(),
                 ),
             )
         } else {
@@ -50,6 +51,7 @@ impl Material for Dielectric {
                 Ray::new(
                     hit_record.point,
                     refract(&unit_direction, &hit_record.normal, index),
+                    ray.time(),
                 ),
             )
         }

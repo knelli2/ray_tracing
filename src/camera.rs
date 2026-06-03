@@ -15,7 +15,7 @@ use num_traits::Zero;
 use crate::{
     color::Color,
     paths::{path::CameraPath, stationary::Stationary},
-    utils::random_float_range,
+    utils::{random_float, random_float_range},
 };
 use crate::{
     hittable::{HitRecord, Hittable},
@@ -276,7 +276,7 @@ impl Camera {
         } else {
             self.defocus_disk_sample()
         };
-        Ray::new(ray_origin, pixel_sample - ray_origin)
+        Ray::new(ray_origin, pixel_sample - ray_origin, random_float())
     }
 
     fn render_pixel(&self, out_color: &mut Color, linear_index: usize, world: &HittableList) {

@@ -5,13 +5,13 @@ use crate::{
     hittable::{HitRecord, Hittable},
     interval::Interval,
     materials::{material::SharedMaterial, metal::Metal},
-    point::Point,
+    point::Point, ray::Ray,
 };
 
 #[derive(Derivative)]
 #[derivative(Default, Debug)]
 pub struct Sphere {
-    center: Point,
+    center: Ray,
     radius: f32,
     #[derivative(Default(value = "Arc::new(Metal::default())"))]
     #[derivative(Debug = "ignore")]
@@ -21,13 +21,20 @@ pub struct Sphere {
 impl Sphere {
     pub fn new(center: Point, radius: f32, material: SharedMaterial) -> Self {
         Self {
-            center,
+            center: Ray::new_t0(center, Point::zero()),
+            radius: radius.max(0.),
+            material,
+        }
+    }
+    pub fn new_moving(center1: Point, center2: Point, radius: f32, material: SharedMaterial) -> Self {
+        Self {
+            center: Ray::new_t0(center1, center2 - center1,),
             radius: radius.max(0.),
             material,
         }
     }
 
-    pub fn center(&self) -> &Point {
+    pub fn center(&self) -> &Ray {
         &self.center
     }
 }
@@ -43,7 +50,8 @@ impl Hittable for Sphere {
     /// c = |(C-Q)|^2 - r^2
     fn hit(&self, ray: &crate::ray::Ray, ray_t: Interval) -> HitRecord {
         let d = ray.direction();
-        let center_minus_Q = self.center - *ray.origin();
+        let center = self.center.at(ray.time());
+        let center_minus_Q =  center - *ray.origin();
 
         let a = d.length_squared();
         let h = d.dot(&center_minus_Q);
@@ -67,7 +75,7 @@ impl Hittable for Sphere {
         let mut record = HitRecord::new_hit();
         record.t = root;
         record.point = ray.at(record.t);
-        let normal = (record.point - self.center) / self.radius;
+        let normal = (record.point - center) / self.radius;
         record.set_face_normal(ray, &normal);
         record.material = self.material.clone();
 

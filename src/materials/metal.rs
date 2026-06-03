@@ -24,7 +24,7 @@ impl Material for Metal {
         reflected = reflected.unit() + Vec3::random_unit() * self.fuzz;
 
         let mut material_record = MaterialRecord::default();
-        material_record.scattered_ray = Ray::new(hit_record.point, reflected);
+        material_record.scattered_ray = Ray::new(hit_record.point, reflected, ray.time());
         material_record.attenuation = self.albedo;
         material_record.scattered = material_record
             .scattered_ray
