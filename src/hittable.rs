@@ -3,14 +3,10 @@ use rayon::prelude::*;
 use std::{any::Any, sync::Arc};
 
 use crate::{
-    interval::Interval,
-    materials::{
+    aabb::Aabb, interval::Interval, materials::{
         material::{Material, SharedMaterial},
         metal::Metal,
-    },
-    point::Point,
-    ray::Ray,
-    vec3::Vec3,
+    }, point::Point, ray::Ray, vec3::Vec3
 };
 
 #[derive(Derivative)]
@@ -32,6 +28,11 @@ impl HitRecord {
         let mut record = Self::default();
         record.hit = true;
         record
+    }
+
+    /// Set HitRecord.hit = false, everything else default
+    pub fn new_miss() -> Self {
+        Self::default()
     }
 
     pub fn new(
@@ -66,6 +67,7 @@ impl HitRecord {
 pub trait Hittable: Send + Sync {
     fn hit(&self, ray: &Ray, ray_t: Interval) -> HitRecord;
     fn as_any(&self) -> &dyn Any;
+    fn bounding_box(&self) -> Aabb;
 }
 
 pub type SharedHittable = Arc<dyn Hittable>;

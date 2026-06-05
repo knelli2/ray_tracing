@@ -3,13 +3,15 @@ use std::sync::Arc;
 
 use log::debug;
 
+use crate::aabb::Aabb;
 use crate::hittable::{Hittable, SharedHittable};
 use crate::interval::Interval;
 use crate::{hittable::HitRecord, point::Point, ray::Ray, vec3::Vec3};
 
 #[derive(Default)]
 pub struct HittableList {
-    pub objects: Vec<Arc<dyn Hittable>>,
+    pub objects: Vec<SharedHittable>,
+    bbox: Aabb,
 }
 
 impl Hittable for HittableList {
@@ -31,16 +33,22 @@ impl Hittable for HittableList {
     fn as_any(&self) -> &dyn Any {
         self
     }
+
+    fn bounding_box(&self) -> Aabb {
+        self.bbox
+    }
 }
 
 impl HittableList {
     pub fn from_hittable(object: SharedHittable) -> Self {
         Self {
+            bbox: object.bounding_box(),
             objects: vec![object],
         }
     }
 
     pub fn add(&mut self, object: SharedHittable) {
+        self.bbox.extend(&object.bounding_box());
         self.objects.push(object);
     }
 

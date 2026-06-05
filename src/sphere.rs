@@ -2,10 +2,7 @@ use derivative::Derivative;
 use std::{any::Any, sync::Arc};
 
 use crate::{
-    hittable::{HitRecord, Hittable},
-    interval::Interval,
-    materials::{material::SharedMaterial, metal::Metal},
-    point::Point, ray::Ray,
+    aabb::Aabb, hittable::{HitRecord, Hittable}, interval::Interval, materials::{material::SharedMaterial, metal::Metal}, point::Point, ray::Ray, vec3::Vec3
 };
 
 #[derive(Derivative)]
@@ -16,21 +13,36 @@ pub struct Sphere {
     #[derivative(Default(value = "Arc::new(Metal::default())"))]
     #[derivative(Debug = "ignore")]
     material: SharedMaterial,
+    bbox: Aabb,
 }
 
 impl Sphere {
+    /// Stationary Sphere
     pub fn new(center: Point, radius: f32, material: SharedMaterial) -> Self {
+        let radius = radius.max(0.);
+        let radius_all_dir = Vec3::new(radius, radius, radius);
         Self {
             center: Ray::new_t0(center, Point::zero()),
-            radius: radius.max(0.),
+            radius: radius,
             material,
+            bbox: Aabb::new_pt(center - radius_all_dir, center + radius_all_dir),
         }
     }
-    pub fn new_moving(center1: Point, center2: Point, radius: f32, material: SharedMaterial) -> Self {
+    /// Moving Sphere
+    pub fn new_moving(center_start: Point, center_end: Point, radius: f32, material: SharedMaterial) -> Self {
+        let radius = radius.max(0.);
+        let radius_all_dir = Vec3::new(radius, radius, radius);
+        let center = Ray::new_t0(center_start, center_end - center_start);
+        let center_at_0 = center.at(0.);
+        let center_at_1 = center.at(0.);
+        let aabb_at_0 = Aabb::new_pt(center_at_0 - radius_all_dir, center_at_0 + radius_all_dir);
+        let aabb_at_1 = Aabb::new_pt(center_at_1 - radius_all_dir, center_at_1 + radius_all_dir);
+
         Self {
-            center: Ray::new_t0(center1, center2 - center1,),
+            center: center,
             radius: radius.max(0.),
             material,
+            bbox: Aabb::new_surround([aabb_at_0, aabb_at_1]),
         }
     }
 
@@ -59,7 +71,7 @@ impl Hittable for Sphere {
 
         let discriminant = h * h - a * c;
         if discriminant < 0. {
-            return HitRecord::default();
+            return HitRecord::new_miss();
         }
 
         let discriminant_sqrt = discriminant.sqrt();
@@ -68,7 +80,7 @@ impl Hittable for Sphere {
         if !ray_t.contains(root) {
             root = (h + discriminant_sqrt) / a;
             if !ray_t.contains(root) {
-                return HitRecord::default();
+                return HitRecord::new_miss();
             }
         }
 
@@ -84,5 +96,9 @@ impl Hittable for Sphere {
 
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn bounding_box(&self) -> Aabb {
+        self.bbox
     }
 }

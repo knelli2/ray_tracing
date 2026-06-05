@@ -6,6 +6,8 @@ mod hittable_list;
 mod interval;
 mod point;
 mod ray;
+mod aabb;
+mod bvh;
 mod sphere;
 mod utils;
 mod vec3;
@@ -247,7 +249,7 @@ fn make_many_spheres_world() -> HittableList {
         }
     }
 
-    world
+    HittableList::from_hittable(Arc::new(world))
 }
 
 fn make_moving_test_camera() -> Camera {
@@ -309,7 +311,7 @@ fn make_many_spheres_camera() -> Camera {
     camera.look_at = Box::new(Stationary::new(Point::new(0., 0., 0.)));
     camera.view_up = Point::unit_y();
     camera.vertical_fov = Degrees::new(20.);
-    camera.samples_per_pixel = 500;
+    camera.samples_per_pixel = 50;
     camera.max_depth = 50;
     camera.defocus_angle = Degrees::new(0.6);
     camera.focus_distance = 10.0;
@@ -324,11 +326,11 @@ fn main() {
     let cli = env_init();
 
     // let world = make_glass_metal_diffuse_world();
-    let world = make_camera_test_world();
-    // let world = make_many_spheres_world();
+    // let world = make_camera_test_world();
+    let world = make_many_spheres_world();
 
-    let mut camera = make_stationary_test_camera();
-    // let mut camera = make_many_spheres_camera();
+    // let mut camera = make_stationary_test_camera();
+    let mut camera = make_many_spheres_camera();
 
     // Render
     camera.render(&world, cli.num_threads);

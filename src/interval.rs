@@ -37,6 +37,15 @@ impl Interval {
         }
     }
 
+    pub fn new_overlap(a: &Interval, b: &Interval) -> Self {
+        Self::new(a.min.min(b.min), a.max.max(b.max))
+    }
+
+    pub fn extend(&self, other: &Interval) {
+        self.min.min(other.min);
+        self.max.max(other.max);
+    }
+
     pub fn empty() -> Self {
         Self::new(f32::INFINITY, -f32::INFINITY)
     }

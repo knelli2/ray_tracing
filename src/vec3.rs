@@ -2,7 +2,7 @@
 use std::{
     default::Default,
     fmt::Debug,
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign},
     process::Output,
 };
 
@@ -89,6 +89,30 @@ impl<T: Vec3Trait> From<[T; 3]> for Vec3<T> {
             x: coord[0],
             y: coord[1],
             z: coord[2],
+        }
+    }
+}
+
+impl<T: Vec3Trait> Index<usize> for Vec3<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &T {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("Index {index} out of bounds for Vec3."),
+        }
+    }
+}
+
+impl<T: Vec3Trait> IndexMut<usize> for Vec3<T> {
+    fn index_mut(&mut self, index: usize) -> &mut T {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            _ => panic!("Index {index} out of bounds for Vec3."),
         }
     }
 }

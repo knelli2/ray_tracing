@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use num_traits::float::Float;
+use num_traits::{PrimInt, float::Float};
 use rand::{Rng, distr::uniform::SampleUniform, rngs::ThreadRng};
 
 #[derive(Default, Debug)]
@@ -38,5 +38,9 @@ pub fn random_float<T: Float + SampleUniform>() -> T {
 }
 
 pub fn random_float_range<T: Float + SampleUniform>(min: T, max: T) -> T {
+    rand::rng().random_range(min..max)
+}
+
+pub fn random_int_range<T: PrimInt + SampleUniform>(min: T, max: T) -> T {
     rand::rng().random_range(min..max)
 }
