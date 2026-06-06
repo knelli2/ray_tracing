@@ -41,9 +41,8 @@ impl Interval {
         Self::new(a.min.min(b.min), a.max.max(b.max))
     }
 
-    pub fn extend(&self, other: &Interval) {
-        self.min.min(other.min);
-        self.max.max(other.max);
+    pub fn extend(&mut self, other: &Interval) {
+        *self = Self::new(self.min.min(other.min), self.max.max(other.max));
     }
 
     pub fn empty() -> Self {
@@ -72,6 +71,14 @@ impl Interval {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.min == f32::INFINITY && self.max == -f32::INFINITY
+    }
+
+    pub fn is_universe(&self) -> bool {
+        self.min == -f32::INFINITY && self.max == f32::INFINITY
+    }
+
     pub fn contains(&self, x: f32) -> bool {
         self.min <= x && x <= self.max
     }
@@ -81,7 +88,7 @@ impl Interval {
     }
 
     pub fn clamp(&self, x: f32) -> f32 {
-      x.clamp(self.min, self.max)
+        x.clamp(self.min, self.max)
     }
 }
 

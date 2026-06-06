@@ -20,21 +20,24 @@ impl Aabb {
         }
     }
 
-    pub fn new_surround(boxes: impl IntoIterator<Item = Aabb>) -> Self {
-        let mut iter = boxes.into_iter().peekable();
-        if iter.peek().is_none() {
-            return Aabb::default();
+    pub fn new_surround(box0: &Aabb, box1: &Aabb) -> Self {
+        Self {
+            x: Interval::new_overlap(&box0.x, &box1.x),
+            y: Interval::new_overlap(&box0.y, &box1.y),
+            z: Interval::new_overlap(&box0.z, &box1.z),
         }
+    }
 
-        let mut result = iter.next().unwrap();
+    pub fn empty() -> Self {
+        Self::new(Interval::empty(), Interval::empty(), Interval::empty())
+    }
 
-        for b in iter {
-            result.x.extend(&b.x);
-            result.y.extend(&b.y);
-            result.z.extend(&b.z);
-        }
-
-        result
+    pub fn universe() -> Self {
+        Self::new(
+            Interval::universe(),
+            Interval::universe(),
+            Interval::universe(),
+        )
     }
 
     pub fn extend(&mut self, other: &Aabb) {
@@ -52,23 +55,34 @@ impl Aabb {
         }
     }
 
-    pub fn hit(&self, ray: &Ray, ray_t: Interval) -> bool {
+    pub fn longest_axis(&self) -> usize {
+        if self.x.size() > self.y.size() {
+            if self.x.size() > self.z.size() { 0 } else { 2 }
+        } else {
+            if self.y.size() > self.z.size() { 1 } else { 2 }
+        }
+    }
+
+    pub fn hit(&self, ray: &Ray, mut ray_t: Interval) -> bool {
         let ray_origin = ray.origin();
         let ray_direction = ray.direction();
 
         for axis in 0usize..3usize {
             let ax = self.axis_interval(axis);
+            if ax.is_universe() {
+                continue;
+            }
             let inv_direction = 1.0 / ray_direction[axis];
 
             let t0 = (ax.min - ray_origin[axis]) * inv_direction;
             let t1 = (ax.max - ray_origin[axis]) * inv_direction;
 
             if t0 < t1 {
-                ray_t.min.max(t0);
-                ray_t.max.min(t1);
+                ray_t.min = ray_t.min.max(t0);
+                ray_t.max = ray_t.max.min(t1);
             } else {
-                ray_t.min.max(t1);
-                ray_t.max.min(t0);
+                ray_t.min = ray_t.min.max(t1);
+                ray_t.max = ray_t.max.min(t0);
             }
 
             if ray_t.max <= ray_t.min {

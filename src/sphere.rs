@@ -34,7 +34,7 @@ impl Sphere {
         let radius_all_dir = Vec3::new(radius, radius, radius);
         let center = Ray::new_t0(center_start, center_end - center_start);
         let center_at_0 = center.at(0.);
-        let center_at_1 = center.at(0.);
+        let center_at_1 = center.at(1.);
         let aabb_at_0 = Aabb::new_pt(center_at_0 - radius_all_dir, center_at_0 + radius_all_dir);
         let aabb_at_1 = Aabb::new_pt(center_at_1 - radius_all_dir, center_at_1 + radius_all_dir);
 
@@ -42,7 +42,7 @@ impl Sphere {
             center: center,
             radius: radius.max(0.),
             material,
-            bbox: Aabb::new_surround([aabb_at_0, aabb_at_1]),
+            bbox: Aabb::new_surround(&aabb_at_0, &aabb_at_1),
         }
     }
 

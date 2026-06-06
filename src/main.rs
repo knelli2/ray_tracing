@@ -30,6 +30,7 @@ use log::{self, LevelFilter, log_enabled};
 use std::f32::consts::FRAC_PI_4;
 use std::sync::Arc;
 
+use crate::bvh::BvhNode;
 use crate::camera::Camera;
 use crate::color::Color;
 use crate::hittable_list::HittableList;
@@ -249,7 +250,7 @@ fn make_many_spheres_world() -> HittableList {
         }
     }
 
-    HittableList::from_hittable(Arc::new(world))
+    world
 }
 
 fn make_moving_test_camera() -> Camera {
@@ -306,7 +307,8 @@ fn make_many_spheres_camera() -> Camera {
     // Camera
     let mut camera = camera_init();
     camera.aspect_ratio = 16. / 9.;
-    camera.image_width = 1920;
+    // camera.image_width = 1920;
+    camera.image_width = 960;
     camera.look_from = Box::new(Stationary::new(Point::new(13.0, 2.0, 3.0)));
     camera.look_at = Box::new(Stationary::new(Point::new(0., 0., 0.)));
     camera.view_up = Point::unit_y();
@@ -325,13 +327,16 @@ fn make_many_spheres_camera() -> Camera {
 fn main() {
     let cli = env_init();
 
-    // let world = make_glass_metal_diffuse_world();
-    // let world = make_camera_test_world();
-    let world = make_many_spheres_world();
+    // let mut world = make_glass_metal_diffuse_world();
+    // let mut world = make_camera_test_world();
+    let mut world = make_many_spheres_world();
 
     // let mut camera = make_stationary_test_camera();
     let mut camera = make_many_spheres_camera();
 
     // Render
-    camera.render(&world, cli.num_threads);
+    let world_bvh = HittableList::from_hittable(Arc::new(BvhNode::new(&mut world)));
+    camera.render(&world_bvh, cli.num_threads);
+
+    // camera.render(&world, cli.num_threads);
 }

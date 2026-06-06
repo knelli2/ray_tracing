@@ -16,14 +16,14 @@ pub struct BvhNode {
 }
 
 impl BvhNode {
-    pub fn new_span(list: &mut Vec<SharedHittable>, start: usize, end: usize) -> Self {
+    fn new_span(list: &mut Vec<SharedHittable>, start: usize, end: usize) -> Self {
         let span = end - start;
 
         if span == 1 {
             let left = list[start].clone();
             let right = list[start].clone();
             return Self {
-                aabb: Aabb::new_surround([left.bounding_box(), right.bounding_box()]),
+                aabb: Aabb::new_surround(&left.bounding_box(), &right.bounding_box()),
                 left: left,
                 right: right,
             };
@@ -31,12 +31,17 @@ impl BvhNode {
             let left = list[start].clone();
             let right = list[start + 1].clone();
             return Self {
-                aabb: Aabb::new_surround([left.bounding_box(), right.bounding_box()]),
+                aabb: Aabb::new_surround(&left.bounding_box(), &right.bounding_box()),
                 left: left,
                 right: right,
             };
         } else {
-            let axis = random_int_range(0, 3);
+            let mut aabb = Aabb::empty();
+            list[start..end]
+                .iter()
+                .for_each(|h| aabb.extend(&h.bounding_box()));
+
+            let axis = aabb.longest_axis();
             list[start..end].sort_by(|a, b| {
                 let a_box = a.bounding_box();
                 let b_box = b.bounding_box();
@@ -53,7 +58,7 @@ impl BvhNode {
             let right = Self::new_span(list, mid, end);
 
             return Self {
-                aabb: Aabb::new_surround([left.bounding_box(), right.bounding_box()]),
+                aabb: aabb,
                 left: Arc::new(left),
                 right: Arc::new(right),
             };

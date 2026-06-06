@@ -16,7 +16,7 @@ pub struct HittableList {
 
 impl Hittable for HittableList {
     fn hit(&self, ray: &Ray, ray_t: Interval) -> HitRecord {
-        let mut last_record = HitRecord::default();
+        let mut last_record = HitRecord::new_miss();
         let mut closest_so_far = ray_t.max;
 
         for object in &self.objects {
@@ -54,5 +54,6 @@ impl HittableList {
 
     pub fn clear(&mut self) {
         self.objects.clear();
+        self.bbox = Aabb::default();
     }
 }
