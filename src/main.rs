@@ -17,6 +17,11 @@ mod materials {
     pub mod material;
     pub mod metal;
 }
+mod textures {
+    pub mod texture;
+    pub mod solid;
+    pub mod checkered;
+}
 mod paths {
     pub mod line;
     pub mod path;
@@ -41,6 +46,8 @@ use crate::paths::line::Line;
 use crate::paths::stationary::Stationary;
 use crate::point::Point;
 use crate::sphere::Sphere;
+use crate::textures::checkered::Checkered;
+use crate::textures::solid::Solid;
 use crate::utils::{Degrees, random_float, random_float_range};
 
 #[derive(Parser)]
@@ -170,11 +177,14 @@ fn make_many_spheres_world() -> HittableList {
     let mut world = HittableList::default();
 
     // Ground
+    let checkered_ground = Arc::new(Checkered::new(
+            Arc::new(Solid::new_rgb(0.95, 0.95, 0.95)),
+            Arc::new(Solid::new_rgb(0.4, 0.8, 0.2)), 
+            0.5));
     world.add(Arc::new(Sphere::new(
         Point::new(0., -1000., 0.),
         1000.,
-        Arc::new(Lambertian::new(Color::grey(0.5))),
-    )));
+        Arc::new(Lambertian::new_texture(checkered_ground)))));
 
     let glass_index = 1.5;
 
@@ -309,6 +319,7 @@ fn make_many_spheres_camera() -> Camera {
     camera.aspect_ratio = 16. / 9.;
     // camera.image_width = 1920;
     camera.image_width = 960;
+    // camera.image_width = 480;
     camera.look_from = Box::new(Stationary::new(Point::new(13.0, 2.0, 3.0)));
     camera.look_at = Box::new(Stationary::new(Point::new(0., 0., 0.)));
     camera.view_up = Point::unit_y();

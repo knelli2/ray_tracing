@@ -20,6 +20,8 @@ pub struct HitRecord {
     pub material: SharedMaterial,
     pub t: f32,
     pub front_face: bool,
+    pub u: f32,
+    pub v: f32
 }
 
 impl HitRecord {
@@ -50,6 +52,8 @@ impl HitRecord {
             material,
             t,
             front_face,
+            u: 0.,
+            v: 0.,
         }
     }
 
